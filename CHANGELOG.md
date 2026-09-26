@@ -6,17 +6,26 @@ téléchargement.
 
 ## À venir
 
+## v1.2.0 — 2026-09-26
+
 ### Nouveautés
 
 - Nouvelle **transition de scène** aux couleurs du stream : un panneau néon traverse
   l'écran pendant que tu changes de scène. Tu choisis la vitesse, la direction et les
   couleurs sur sa page, puis tu l'exportes en vidéo pour OBS.
+- **Sources selon le jeu** : une source de tes scènes (ta manette…) ne s'affiche que
+  pendant les jeux que tu choisis, et se masque toute seule le reste du temps. Un jeu se
+  choisit par son nom, ou par son emplacement quand deux jeux portent le même nom.
 
 ### À faire après la mise à jour
 
-Rien d'obligatoire. Pour utiliser la transition : sur la page d'accueil, ouvre la vignette
-**Transition de scène**, clique sur **Exporter la vidéo pour OBS**, puis ajoute-la dans OBS
-comme transition **Stinger** en suivant la marche à suivre en bas de sa page.
+- **Ferme OBS et rouvre-le** une fois : c'est lui qui affiche et masque tes sources selon
+  le jeu, et il doit prendre la nouvelle version.
+- Pour utiliser la transition : sur la page d'accueil, ouvre la vignette
+  **Transition de scène**, clique sur **Exporter la vidéo pour OBS**, puis ajoute-la dans
+  OBS comme transition **Stinger** en suivant la marche à suivre en bas de sa page.
+- Pour ta manette : ouvre la vignette **Sources selon le jeu**, choisis ta source et
+  ajoute tes jeux.
 
 ## v1.1.0 — 2026-09-26
 
