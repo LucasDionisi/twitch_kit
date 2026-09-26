@@ -40,22 +40,16 @@ function setAuthButton(name, enabled, label) {
 }
 
 /* ===================== état des comptes ===================== */
+// Le calcul des états vit dans etat.js, partagé avec le dock OBS.
 
-// Le même raisonnement pour les trois comptes : ce qui manque, dans l'ordre où il faut le faire.
-function accountState(configured, account, keysMissing) {
-  if (!configured) return { level: 'off', text: keysMissing };
-  if (!account.authorized) return { level: 'warn', text: 'À autoriser' };
-  if (account.erreur || account.scopesManquants) return { level: 'bad', text: 'Autorisation à refaire' };
-  const name = account.displayName || account.login;
-  return { level: 'ok', text: name ? 'Connecté : ' + name : 'Connecté' };
-}
+const Etat = window.TwitchKitEtat;
 
 function renderTwitch(s) {
-  const st = accountState(s.twitch.configured, s.comptes.principal, 'Clés à saisir');
-  setPill('twitch', st.level, st.text);
+  const st = Etat.twitch(s);
+  setPill('twitch', st.niveau, st.texte);
   setAuthButton('twitch', s.twitch.configured,
-                st.level === 'ok' ? 'Autoriser un autre compte' : 'Autoriser ma chaîne');
-  $('[data-auth="twitch"]').classList.toggle('secondary', st.level === 'ok');
+                st.niveau === 'ok' ? 'Autoriser un autre compte' : 'Autoriser ma chaîne');
+  $('[data-auth="twitch"]').classList.toggle('secondary', st.niveau === 'ok');
   setField('twitch-redirect', s.twitch.redirect);
   fillKeys('twitch', s.twitch);
 }
@@ -65,11 +59,8 @@ function renderBot(s) {
   const bot = s.comptes.bot;
   card.classList.toggle('disabled', !s.twitch.configured);
 
-  let st;
-  if (!s.twitch.configured) st = { level: 'off', text: 'Chaîne d\'abord' };
-  else if (!bot.pseudoAttendu && !bot.authorized) st = { level: 'off', text: 'Non utilisé' };
-  else st = accountState(true, bot, '');
-  setPill('bot', st.level, st.text);
+  const st = Etat.bot(s);
+  setPill('bot', st.niveau, st.texte);
 
   setField('bot-auth', location.origin + '/auth/bot');
   // commande à taper dans le chat pour que le bot puisse faire des annonces
@@ -80,13 +71,13 @@ function renderBot(s) {
 }
 
 function renderSpotify(s) {
-  const st = accountState(s.spotify.configured, s.comptes.spotify, 'Non utilisé');
-  setPill('spotify', st.level, st.text);
+  const st = Etat.spotify(s);
+  setPill('spotify', st.niveau, st.texte);
   const btn = $('[data-auth="spotify"]');
   btn.hidden = !s.spotify.configured;
   setAuthButton('spotify', s.spotify.configured,
-                st.level === 'ok' ? 'Autoriser à nouveau' : 'Autoriser Spotify');
-  btn.classList.toggle('secondary', st.level === 'ok');
+                st.niveau === 'ok' ? 'Autoriser à nouveau' : 'Autoriser Spotify');
+  btn.classList.toggle('secondary', st.niveau === 'ok');
   setField('spotify-redirect', s.spotify.redirect);
   fillKeys('spotify', s.spotify);
 }
@@ -110,15 +101,6 @@ function openKeysOnce(name, open) {
 }
 
 /* ===================== fonctionnalités ===================== */
-
-const ACCOUNT_NAMES = { twitch: 'ta chaîne', bot: 'le bot', spotify: 'Spotify' };
-
-function accountReady(s, name) {
-  if (name === 'twitch') return s.comptes.principal.authorized;
-  if (name === 'bot') return s.comptes.bot.authorized;
-  if (name === 'spotify') return s.comptes.spotify.authorized;
-  return false;
-}
 
 // constructeurs des formulaires de réglages, par valeur de « reglages » dans features.js
 const SETTINGS_BUILDERS = {
@@ -231,24 +213,22 @@ function buildFeatures() {
 
 function updateFeature(f, s) {
   const card = featureCards.get(f.id);
-  const missing = (f.comptes || []).filter((c) => !s || !accountReady(s, c));
+  const st = Etat.feature(f, s);
+  const missing = st.manquants;
 
   // chaque compte manquant mène à sa page
   card.needs.hidden = !missing.length;
   card.needs.textContent = 'À connecter d\'abord : ';
   missing.forEach((c, i) => {
     if (i) card.needs.append(', ');
-    const link = el('a', null, ACCOUNT_NAMES[c] || c);
+    const link = el('a', null, Etat.ACCOUNT_NAMES[c] || c);
     link.href = '#' + c;
     card.needs.appendChild(link);
   });
 
-  // l'état détaillé vient du serveur ; sans comptes connectés, inutile d'aller plus loin
-  const st = missing.length
-    ? { niveau: 'off', texte: 'À connecter' }
-    : (s && s.fonctionnalites && s.fonctionnalites[f.id]) || { niveau: 'ok', texte: 'Prêt' };
+  // l'état détaillé vient du serveur (sans comptes connectés, etat.js s'arrête avant)
   setPill(f.id, st.niveau, st.texte);
-  card.detail.hidden = !st.detail || Boolean(missing.length);
+  card.detail.hidden = !st.detail;
   card.detail.textContent = st.detail || '';
   card.detail.dataset.level = st.niveau;
 }

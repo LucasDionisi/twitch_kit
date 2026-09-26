@@ -61,6 +61,16 @@ par deux overlays OBS) :
   Sonde `/status` toutes les 5 s **seulement quand l'onglet est visible**. Tuiles et vues
   des fonctionnalités sont construites une fois au chargement puis mises à jour (jamais
   reconstruites : un formulaire en cours de saisie ne doit pas disparaître).
+- `overlays/etat.js` — calcul des pastilles (comptes, fonctionnalités) depuis `/status`,
+  partagé par l'accueil et le dock : les deux affichent toujours le même état.
+- `overlays/dock.html` + `dock.js` + `dock.css` — dock OBS (Docks → Docks personnalisés du
+  navigateur), toujours sombre, pensé pour 200 à 400 px de large : une ligne par compte et
+  par fonctionnalité (sauf lui-même), un résumé en tête, le détail sous la ligne quand il y
+  a quelque chose à faire ; un clic ouvre la page de la section sur l'accueil en
+  `target="_blank"` (OBS devrait l'ouvrir dans le navigateur par défaut : à vérifier). Sonde `/status?dock=1` toutes les
+  5 s quand il est visible ; le `?dock=1` passe la fonctionnalité `dock` à « Dans OBS »
+  (vu au moins une fois depuis le démarrage). Futures actions en direct : ici aussi, en
+  plus du Stream Deck.
 - `overlays/home_messages.js` — formulaire « modèles de messages du bot » de la vue d'une
   fonctionnalité (`reglages: 'messages'` dans `features.js`), construit depuis
   `GET /settings/<id>`.
