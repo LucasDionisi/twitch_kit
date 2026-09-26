@@ -22,6 +22,7 @@ const chat = require('./chat.js');
 const polls = require('./polls.js');
 const votes = require('./votes.js');
 const live = require('./live.js');
+const jeux = require('./jeux.js');
 
 const ROOT = path.join(__dirname, '..');       // le code vit dans src/
 const WEB_ROOT = path.join(ROOT, 'overlays');  // seul dossier exposé en HTTP
@@ -386,6 +387,11 @@ const FEATURE_SETTINGS = {
     nom: 'overlay prédiction',
     normalize: (raw) => votes.normalizeStyle('prediction', raw),
     describe: () => votes.describeStyle('prediction')
+  },
+  game_sources: {
+    nom: 'sources affichées selon le jeu',
+    normalize: (raw) => jeux.normalize(raw),
+    describe: () => jeux.describe()
   }
 };
 
@@ -411,6 +417,7 @@ let settings = loadSettings(null);
 function applySettings(next) {
   settings = next;
   polls.setSettings(next.polls);
+  jeux.setSettings(next.game_sources);
   // les overlays ouverts changent d'apparence tout de suite, sans être rafraîchis
   votes.KINDS.forEach((kind) => live.broadcast('/' + kind + '/stream', 'config', next[kind + '_overlay']));
 }
@@ -748,7 +755,8 @@ function statusPayload() {
       polls: pollsState(),
       poll_overlay: overlayState('poll'),
       prediction_overlay: overlayState('prediction'),
-      dock: dockState()
+      dock: dockState(),
+      game_sources: jeux.status()
     }
   };
 }
@@ -773,6 +781,15 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (SETUP_ROUTES.has(pathname)) return await handleSetup(req, res, pathname);
+
+    // programmes ouverts et sources d'OBS, pour choisir sans rien taper (titres de
+    // fenêtres : réservé à la page d'accueil, comme les /setup)
+    if (pathname === '/game_sources/choices') {
+      if (req.headers['sec-fetch-site'] !== 'same-origin') {
+        return sendJson(res, 403, { erreur: 'à ouvrir depuis la page d\'accueil' });
+      }
+      return sendJson(res, 200, await jeux.choices());
+    }
 
     const feature = featureRoute(pathname);
     if (feature) return await handleFeatureSettings(req, res, feature);
@@ -924,6 +941,7 @@ spotify.init({
   credentials: credentials.spotify,
   redirectUri: SPOTIFY_REDIRECT_URI
 });
+jeux.init({ dataDir: DATA_DIR });
 applySettings(settings);
 chat.init({ bot: botAccount, channel: broadcaster });
 polls.init({ send: chat.say });

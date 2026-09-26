@@ -19,7 +19,8 @@
  *                                            // 'messages' = modèles de messages du bot,
  *                                            // 'apparence' = thème, couleurs… d'un overlay,
  *                                            // avec son aperçu en direct (url + '?demo=1'),
- *                                            // 'transition' = créateur de la transition de scène
+ *                                            // 'transition' = créateur de la transition de scène,
+ *                                            // 'jeux' = sources OBS affichées selon le jeu lancé
  *     dock: false                            // pas de ligne dans le dock OBS (facultatif) :
  *                                            // outil sans état à surveiller pendant le stream
  *   }
@@ -95,5 +96,17 @@ window.FEATURES = [
     comptes: [],
     reglages: 'transition',
     dock: false
+  },
+  {
+    id: 'game_sources',
+    nom: 'Sources selon le jeu',
+    description: 'Une source de tes scènes (ta manette…) qui ne s\'affiche que pendant les ' +
+                 'jeux choisis.',
+    url: null,
+    obs: 'Rien à ajouter dans OBS : garde ta source dans tes scènes, Twitch Kit l\'affiche ' +
+         'et la masque tout seul. OBS doit être ouvert, avec le script Twitch Kit chargé.',
+    groupe: 'obs',
+    comptes: [],
+    reglages: 'jeux'
   }
 ];

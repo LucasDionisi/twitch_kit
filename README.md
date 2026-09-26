@@ -259,6 +259,31 @@ la vidéo dans OBS (le point de transition peut changer avec la vitesse).
 
 ---
 
+## Sources selon le jeu
+
+Une source de tes scènes (ta manette, un compteur…) qui ne s'affiche que pendant certains
+jeux, et se masque toute seule le reste du temps. Rien à ajouter dans OBS : ta source reste
+où elle est, dans autant de scènes que tu veux.
+
+1. Lance ton jeu une fois, pour qu'il apparaisse dans la liste des programmes ouverts.
+2. Sur la page d'accueil, clique sur la vignette **Sources selon le jeu**.
+3. Dans le premier champ, choisis ta source (la liste montre les sources de ton OBS).
+4. Clique dans **Ajouter un jeu** et choisis ton jeu dans la liste. S'il n'y est pas, tape
+   le nom de son programme (par exemple `RocketLeague.exe`) puis **Ajouter**.
+   Deux jeux ont le même nom de programme (un lanceur, `game.exe`…) ? Choisis la ligne
+   **ce dossier seulement**, ou colle son chemin complet : dans l'Explorateur,
+   Maj + clic droit sur le programme → **Copier en tant que chemin d'accès**.
+5. Ajoute autant de jeux que tu veux, puis clique sur **Enregistrer**.
+
+La source s'affiche quelques secondes après le lancement du jeu, et se masque quand tu le
+fermes. Pour une autre source avec d'autres jeux, clique sur **Ajouter une source**.
+
+Bon à savoir : si tu renommes la source dans OBS, renomme-la aussi sur cette page. Et
+pendant qu'un de ces jeux tourne, c'est Twitch Kit qui décide : si tu masques la source à
+la main, elle reste masquée jusqu'au prochain lancement ou à la prochaine fermeture du jeu.
+
+---
+
 ## Mettre à jour
 
 Quand une nouvelle version sort :
@@ -305,6 +330,15 @@ clique sur **Tester**.
 **Le bot écrit en message normal alors que tu as choisi « Annonce ».**
 Le bot n'est pas modérateur de ta chaîne : dans ton chat, écris `/mod` suivi du pseudo du
 bot, puis Entrée.
+
+**La vignette « Sources selon le jeu » affiche « OBS ne répond pas ».**
+Ouvre OBS. S'il est déjà ouvert, ferme-le et rouvre-le : c'est nécessaire une fois après
+une mise à jour de Twitch Kit.
+
+**Ma source ne s'affiche pas quand je lance mon jeu.**
+Vérifie que le nom sur la page est exactement celui de la source dans OBS (majuscules
+comprises). Certains jeux passent par un lanceur : ajoute aussi le programme du jeu
+lui-même, choisi dans la liste pendant que tu joues.
 
 **Spotify affiche « INVALID_CLIENT ».**
 Une des deux clés Spotify est fausse. Recopie-les (étape 5, points 5 et 6), puis
