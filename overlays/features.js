@@ -12,13 +12,50 @@
  *                                            // ou null si ce n'est pas une source OBS
  *     taille: [1920, 1080],                  // largeur / hauteur de la source OBS
  *     obs: 'Rien à ajouter dans OBS.',       // consigne OBS en une phrase, si pas d'URL
+ *     groupe: 'overlays',                    // section de l'accueil, voir FEATURE_GROUPS
  *     comptes: ['twitch'],                   // autorisations requises : 'twitch', 'bot', 'spotify'
- *     reglages: 'messages'                   // formulaire de réglages sur la carte (facultatif) :
+ *     reglages: 'messages'                   // formulaire de réglages sur la page (facultatif),
+ *                                            // lu sur /settings/<id>, écrit sur /setup/<id> :
  *                                            // 'messages' = modèles de messages du bot,
- *                                            // lus sur /settings/<id>, écrits sur /setup/<id>
+ *                                            // 'apparence' = thème, couleurs… d'un overlay,
+ *                                            // avec son aperçu en direct (url + '?demo=1')
  *   }
+ *
+ * Un overlay a toujours un ?demo=1 : c'est lui que sa page affiche en aperçu.
  */
+
+// Sections de l'accueil, dans l'ordre d'affichage. Un groupe sans fonctionnalité n'est
+// pas affiché ; une fonctionnalité sans groupe connu tombe dans le dernier.
+window.FEATURE_GROUPS = [
+  { id: 'overlays', nom: 'Overlays' },
+  { id: 'bot', nom: 'Bot du chat' }
+];
+
 window.FEATURES = [
+  {
+    id: 'poll_overlay',
+    nom: 'Overlay sondage',
+    description: 'Ton sondage à l\'écran pendant qu\'il tourne, avec les votes en direct, puis le résultat.',
+    url: '/poll.html',
+    taille: [660, 720],
+    obs: 'Dans les propriétés de la source, décoche « Éteindre la source quand elle n\'est pas ' +
+         'visible ». Le fond est transparent : l\'overlay n\'apparaît que pendant un sondage.',
+    groupe: 'overlays',
+    comptes: ['twitch'],
+    reglages: 'apparence'
+  },
+  {
+    id: 'prediction_overlay',
+    nom: 'Overlay prédiction',
+    description: 'Ta prédiction à l\'écran, avec les mises en direct, puis l\'issue gagnante.',
+    url: '/prediction.html',
+    taille: [660, 720],
+    obs: 'Dans les propriétés de la source, décoche « Éteindre la source quand elle n\'est pas ' +
+         'visible ». Le fond est transparent : l\'overlay n\'apparaît que pendant une prédiction.',
+    groupe: 'overlays',
+    comptes: ['twitch'],
+    reglages: 'apparence'
+  },
   {
     id: 'polls',
     nom: 'Sondages et prédictions dans le chat',
@@ -26,6 +63,7 @@ window.FEATURES = [
                  'puis donne le résultat à la fin.',
     url: null,
     obs: 'Rien à ajouter dans OBS : le bot écrit directement dans ton chat.',
+    groupe: 'bot',
     comptes: ['twitch', 'bot'],
     reglages: 'messages'
   }

@@ -122,7 +122,8 @@ function accountReady(s, name) {
 
 // constructeurs des formulaires de réglages, par valeur de « reglages » dans features.js
 const SETTINGS_BUILDERS = {
-  messages: (root, f) => window.buildMessageSettings(root, f.id)
+  messages: (root, f) => window.buildMessageSettings(root, f.id),
+  apparence: (root, f) => window.buildOverlaySettings(root, f)
 };
 
 function el(tag, className, text) {
@@ -197,18 +198,34 @@ function buildFeatureView(f) {
   return view;
 }
 
+function tileSection(title) {
+  const section = el('section');
+  const tiles = el('div', 'tiles');
+  section.append(el('h2', null, title), tiles);
+  $('#features').appendChild(section);
+  return tiles;
+}
+
+// Une section par groupe (overlays, bot…), dans l'ordre de FEATURE_GROUPS.
 function buildFeatures() {
-  const tiles = $('#features');
   const views = $('#feature-views');
   const list = window.FEATURES || [];
+  const groups = window.FEATURE_GROUPS || [];
   if (!list.length) {
-    tiles.appendChild(el('div', 'empty muted',
+    tileSection('Fonctionnalités').appendChild(el('div', 'empty muted',
       'Aucune fonctionnalité pour l\'instant. Elles apparaîtront ici au fil des mises à jour.'));
     return;
   }
-  list.forEach((f) => {
-    tiles.appendChild(buildFeatureTile(f));
-    views.appendChild(buildFeatureView(f));
+  const known = groups.map((g) => g.id);
+  const last = known[known.length - 1];
+  groups.forEach((g) => {
+    const members = list.filter((f) => (known.includes(f.groupe) ? f.groupe : last) === g.id);
+    if (!members.length) return;
+    const tiles = tileSection(g.nom);
+    members.forEach((f) => {
+      tiles.appendChild(buildFeatureTile(f));
+      views.appendChild(buildFeatureView(f));
+    });
   });
 }
 

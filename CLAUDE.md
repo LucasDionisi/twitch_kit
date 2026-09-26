@@ -9,19 +9,23 @@ personnel de l'auteur). Même principe : un serveur Node local, lancé et arrêt
 alimente des sources navigateur. Mais l'utilisateur final **ne code pas, n'édite aucun
 fichier et n'installe rien** : c'est la contrainte qui guide tout le reste.
 
-Le socle, plus une première fonctionnalité (sondages et prédictions annoncés par le bot) :
+Le socle, plus les sondages et prédictions (annoncés par le bot dans le chat, et affichés
+par deux overlays OBS) :
 
 - `src/server.js` — serveur HTTP sans dépendance npm : OAuth Twitch pour deux comptes
   (chaîne et bot, via la fabrique `makeAccount()`), OAuth Spotify, `/status`, et les routes
   `POST /setup/twitch|bot|spotify` qui écrivent `config/credentials.json`. Les réglages des
   fonctionnalités vivent dans `config/settings.json` (une section par fonctionnalité,
   normalisée par son module ; `writeSettings()` → `applySettings()`, surveillé comme les
-  identifiants). `/status` porte `fonctionnalites.<id>` : `{ niveau, texte, detail }`
-  calculé côté serveur, affiché tel quel sur la carte.
+  identifiants). Le registre `FEATURE_SETTINGS` (id → `normalize`, `describe`, `test`
+  facultatif) sert à la fois ce fichier et les routes génériques `GET /settings/<id>`,
+  `POST /setup/<id>` et `POST /setup/<id>/test`. `/status` porte `fonctionnalites.<id>` :
+  `{ niveau, texte, detail }` calculé côté serveur, affiché tel quel sur la carte.
 - `src/spotify.js` — OAuth Spotify seul (autorisation, refresh, `ensureToken()` pour les
   futures fonctionnalités). N'importe rien du serveur, `server.js` l'injecte.
 - `src/eventsub.js` — EventSub par WebSocket (client côté serveur, `WebSocket` natif de
-  Node 22+) avec le token de la chaîne. `on(type, version, handler)` pour s'abonner ;
+  Node 22+) avec le token de la chaîne. `on(type, version, handler)` pour s'abonner
+  (plusieurs handlers par type, un seul abonnement Twitch) ;
   gère welcome/keepalive (watchdog)/reconnect/revocation, dédoublonne par `message_id`,
   réessaie avec backoff. Un refus 401/403 à l'abonnement l'arrête (il faut réautoriser) :
   le callback d'autorisation de la chaîne appelle `eventsub.restart()`.
@@ -30,8 +34,24 @@ Le socle, plus une première fonctionnalité (sondages et prédictions annoncés
   annonce refusée retombe sur un message normal et laisse un avertissement pour l'accueil.
 - `src/polls.js` — sondages et prédictions : modèles de messages à variables `{titre}`…,
   valeurs par défaut, `normalize()` (bornes), handlers EventSub (`events`), et `test()`
-  (exemple envoyé dans le chat depuis l'accueil, 3 s minimum entre deux). Routes :
-  `GET /settings/polls`, `POST /setup/polls`, `POST /setup/polls/test`.
+  (exemple envoyé dans le chat depuis l'accueil, 3 s minimum entre deux). Id `polls`.
+- `src/votes.js` — overlays sondage et prédiction (porté de `twitch_tools`) : état en
+  mémoire alimenté par begin/progress/lock/end, `payload(kind)` avec temps restant
+  recalculé, `seed()` rattrape via Helix un événement déjà en cours au démarrage. Le
+  résultat porte son `hideAtMs` : la page se retire seule et le serveur l'oublie
+  paresseusement (aucune minuterie). Réglages d'apparence (`normalizeStyle`,
+  `describeStyle`) : thème (`circuit` | `crt`), couleurs **par thème**, taille, durée du
+  résultat, éléments affichés, textes. Ids `poll_overlay` et `prediction_overlay`.
+- `src/live.js` — flux WebSocket vers les overlays, porté de `twitch_tools` (RFC 6455
+  minimal, ping commun toutes les 30 s, origine vérifiée). `route(chemin, greet)` :
+  `greet(send)` envoie réglages puis état à chaque (re)connexion ; `broadcast()` ;
+  `count()` ignore les connexions `?demo=1`. Flux `/poll/stream` et `/prediction/stream`
+  (événements `config`, `poll` / `prediction`).
+- `overlays/poll.html`, `prediction.html` — pages minces ; rendu commun dans `votes.js`
+  (`VoteOverlay.start(kind)`), les deux thèmes dans `votes.css` (variables `--c1`, `--c2`,
+  `--titres`, `--scale`, classes `theme-*`, `no-*` sur `body`). Polices embarquées dans
+  `overlays/fonts/` (OFL, licence dans `OFL.txt`) : jamais de Google Fonts en ligne.
+- `overlays/live.js` — client WebSocket des overlays (repris tel quel de `twitch_tools`).
 - `overlays/home.html` + `home.js` + `home.css` — page d'accueil servie sur `/`, une seule
   page à vues : l'accueil (`#view-home`) n'est qu'une grille de **tuiles** (une par compte,
   une par fonctionnalité) avec leur pastille d'état ; chaque tuile ouvre la vue de sa
@@ -44,6 +64,10 @@ Le socle, plus une première fonctionnalité (sondages et prédictions annoncés
 - `overlays/home_messages.js` — formulaire « modèles de messages du bot » de la vue d'une
   fonctionnalité (`reglages: 'messages'` dans `features.js`), construit depuis
   `GET /settings/<id>`.
+- `overlays/home_overlay.js` — réglages d'apparence d'un overlay (`reglages: 'apparence'`),
+  avec l'aperçu : l'overlay en `?demo=1` dans un iframe, qui reçoit les réglages non
+  enregistrés par `postMessage` (`{ twitchKitConfig }`, origine vérifiée) et n'ouvre alors
+  pas de flux.
 - `overlays/features.js` — catalogue des fonctionnalités affichées sur l'accueil.
 - `obs_twitch_kit.lua` + `start_server_hidden.vbs` — lancement caché depuis OBS. Le `.vbs`
   prend `runtime\node.exe` s'il existe (zip de release), sinon `node` du PATH (dev).
@@ -66,7 +90,8 @@ Le socle, plus une première fonctionnalité (sondages et prédictions annoncés
   clés, mise à jour, dépannage. Aucune mention de code, de Node, de git ni de JSON. Ce qui
   concerne le développement va ici.
 - **Nouvelle fonctionnalité** = une entrée dans `overlays/features.js` (sinon elle n'apparaît
-  pas sur l'accueil), ses scopes ajoutés à `SCOPES` / `BOT_SCOPES` (`checkScopes()` signalera
+  pas sur l'accueil) avec son `groupe` (section de l'accueil : `overlays`, `bot`… ; un
+  nouveau groupe s'ajoute à `FEATURE_GROUPS`), ses scopes ajoutés à `SCOPES` / `BOT_SCOPES` (`checkScopes()` signalera
   alors « Autorisation à refaire » aux comptes déjà autorisés), une section du README si
   l'utilisateur a quelque chose à faire dans OBS, et une mise à jour de ce fichier.
 - Port par défaut **8787** (pas 8777) pour cohabiter avec `twitch_tools` sur le PC de
@@ -89,22 +114,52 @@ Le socle, plus une première fonctionnalité (sondages et prédictions annoncés
 - **Chaque fonctionnalité dit exactement quoi faire dans OBS**, directement sur sa page.
   Pour un overlay : l'URL à copier (bouton copier), le type de source (Navigateur), la
   **largeur et la hauteur à régler**, et tout réglage OBS utile (ex. « Actualiser le
-  navigateur quand la scène devient active », fond transparent). Plus un aperçu via
-  `?demo=1`. Ces infos vivent dans l'entrée de `overlays/features.js`, pas en dur dans
-  `home.js`.
+  navigateur quand la scène devient active », fond transparent). Ces infos vivent dans
+  l'entrée de `overlays/features.js`, pas en dur dans `home.js`.
+- **Toujours un `?demo=1` pour l'aperçu dans l'accueil.** Tout overlay doit avoir un mode
+  `?demo=1` (faux événements en boucle, même rendu qu'en vrai), et sa page dans l'accueil
+  l'affiche en aperçu, mis à jour en direct à chaque réglage. Pas d'overlay sans aperçu.
+
+## Stream Deck+
+
+Le streamer a un **Stream Deck+** (8 touches, 4 molettes, bande tactile). Pour toute action
+à déclencher en direct (lancer, afficher / masquer, passer à l'étape suivante, relancer…),
+se demander si un bouton du Stream Deck est plus pratique qu'un clic sur la page
+d'accueil ; si oui, le mettre en place avec la fonctionnalité, pas après.
+
+- **Sans rien installer** : l'action native « Site web » du Stream Deck, option « Accéder en
+  arrière-plan » (requête GET, pas de navigateur ouvert), pointée sur une route locale du
+  serveur, du type `/deck/<action>`.
+- **Chaque action a sa fiche sur la page de sa fonctionnalité** : l'URL à copier (bouton
+  copier) et la marche à suivre dans le logiciel Stream Deck, comme on le fait pour OBS.
+  Ces infos vivent dans `overlays/features.js`, et le README explique la manip une fois.
+- **Sécurité** : une route GET qui agit peut être appelée par n'importe quelle page web
+  ouverte sur le PC (CSRF vers 127.0.0.1). Les routes `/deck/*` exigent donc une clé
+  secrète dans l'URL, générée au premier démarrage (dans `data/`, jamais dans le zip),
+  comparée en temps constant, et régénérable depuis l'accueil.
+- **Réponse immédiate et sûre** : l'action répond vite, ne fait rien de destructif si on
+  appuie deux fois, et un échec se voit (log + état sur l'accueil), le Stream Deck
+  n'affichant qu'un simple triangle d'erreur.
+- **Molettes et bande tactile** : l'action « Site web » ne s'y pose pas, il faudrait un
+  plugin Stream Deck. À éviter tant que les touches suffisent ; en discuter avant.
 
 ## Reprendre depuis twitch_tools
 
 Les futures fonctionnalités se portent depuis `twitch_tools`, en en reprenant les règles :
 
+`twitch_tools` est sur le PC de l'auteur dans `C:\Github\OBS_Manisi_Tools`.
+
 - **Pas de SSE ni de long polling pour un overlay** (les sources OBS partagent un Chromium
-  limité à 6 connexions HTTP). Le temps réel passe par WebSocket natif : porter
-  `LIVE_ROUTES` / `handleUpgrade()` / `greet()` côté serveur **et** `overlays/live.js` côté
-  page, ensemble (ni l'un ni l'autre n'est encore là).
+  limité à 6 connexions HTTP). Le temps réel passe par WebSocket natif : `src/live.js`
+  côté serveur (un `live.route()` par flux) et `overlays/live.js` côté page.
 - Pousser plutôt que sonder ; purge paresseuse plutôt que timers ; jamais deux
   `setInterval` sur le même job.
-- Animations en CSS pour les pages affichées tout le stream, pas de `requestAnimationFrame`.
-- Chaque overlay a un `?demo=1` (c'est lui que la page d'accueil pourra prévisualiser).
+- Animations en CSS pour les pages affichées tout le stream, pas de `requestAnimationFrame`
+  (les overlays de `twitch_tools` en utilisent pour faire rouler les compteurs : ne pas
+  le reprendre).
+- Pour vérifier un overlay par capture Edge headless (`--virtual-time-budget`), les
+  transitions CSS restent figées à leur valeur de départ : une jauge vide sur la capture
+  n'est pas forcément un bug (couper les transitions dans une copie pour vérifier).
 
 ## Git — ne jamais le faire soi-même
 
