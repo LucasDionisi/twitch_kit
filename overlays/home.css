@@ -640,6 +640,13 @@ button:disabled { opacity: 0.5; cursor: default; }
   border-top: 1px solid var(--line);
 }
 .tr-export + p { margin: 6px 0 0; }
+.tr-warn {
+  margin: 10px 0 0;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(217, 154, 30, 0.1);
+}
 
 .tr-guide {
   margin-top: 18px;
