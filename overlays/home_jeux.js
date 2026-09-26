@@ -1,9 +1,10 @@
 /* Réglages « sources selon le jeu », sur la page de la fonctionnalité game_sources.
  *
  * Une carte par règle : le nom de la source OBS (proposé depuis la liste des sources
- * qu'OBS a envoyée), puis les jeux en pastilles. Un jeu s'ajoute en tapant son .exe, ou
- * en le choisissant parmi les programmes ouverts (GET /game_sources/choices, relu à
- * chaque fois qu'on ouvre le champ). Enregistré sur POST /setup/game_sources.
+ * qu'OBS a envoyée), puis les jeux en pastilles. Un jeu s'ajoute en tapant son .exe ou
+ * son chemin complet (ce programme-là seulement), ou en le choisissant parmi les
+ * programmes ouverts (GET /game_sources/choices, relu à chaque fois qu'on ouvre le
+ * champ). Enregistré sur POST /setup/game_sources.
  *
  * L'état en direct (affichée / masquée) vient de /status, relayé par home.js avec
  * l'événement « twitchkit:status ». Utilise $, $$ et toast de home.js, chargé juste après.
@@ -73,12 +74,20 @@ window.buildGameSourceSettings = function (root, f) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.erreur || 'erreur ' + res.status);
       if (data.sources.length) fillSources(data.sources);
-      programsList.replaceChildren(...data.programmes.map((p) => {
-        const opt = node('option');
-        opt.value = p.exe;
-        opt.label = p.titre + ' — ' + p.exe;
-        return opt;
-      }));
+      // chaque programme deux fois : par son nom (où qu'il soit), puis par son chemin
+      const options = [];
+      data.programmes.forEach((p) => {
+        const byName = node('option');
+        byName.value = p.exe;
+        byName.label = p.titre;
+        options.push(byName);
+        if (!p.chemin) return;
+        const byPath = node('option');
+        byPath.value = p.chemin;
+        byPath.label = p.titre + ' — ce dossier seulement';
+        options.push(byPath);
+      });
+      programsList.replaceChildren(...options);
       if (data.erreur) toast(data.erreur);
     } catch (err) {
       /* on garde les listes précédentes : la saisie à la main reste possible */
@@ -178,7 +187,7 @@ window.buildGameSourceSettings = function (root, f) {
 
     const add = node('div', 'gs-add');
     const input = node('input', 'gs-new');
-    input.placeholder = 'Ajouter un jeu : choisis-le ou tape son .exe';
+    input.placeholder = 'Ajouter un jeu : choisis-le, tape son .exe ou colle son chemin';
     input.spellcheck = false;
     input.setAttribute('list', 'gs-programs');
     input.setAttribute('aria-label', 'Jeu à ajouter');
@@ -220,19 +229,40 @@ window.buildGameSourceSettings = function (root, f) {
       chip.remove();
       changed();
     });
-    chip.append(node('span', null, exe), x);
+    // un chemin : le nom du programme, précédé de son dossier en discret ; le chemin
+    // complet en info-bulle
+    const parts = exe.split('\\');
+    if (parts.length > 1) {
+      chip.classList.add('path');
+      chip.title = exe + '\nCe programme-là seulement, pas un autre du même nom.';
+      chip.append(node('span', 'gs-dir', parts[parts.length - 2] + '\\'));
+    }
+    chip.append(node('span', null, parts[parts.length - 1]), x);
     return chip;
   }
 
-  // même nettoyage que le serveur : un chemin ou un nom sans .exe sont acceptés
-  function addGame(games, value) {
-    let exe = String(value || '').trim().split(/[\\/]/).pop().trim();
-    if (!exe) return false;
-    if (!/\.exe$/i.test(exe)) exe += '.exe';
-    if (/[<>:"|?*]/.test(exe) || exe.length > 100) {
-      toast('Nom de programme invalide');
-      return false;
+  // même nettoyage que le serveur (qui a le dernier mot) : un nom, avec ou sans .exe, ou
+  // un chemin complet, guillemets de « Copier en tant que chemin d'accès » compris
+  function cleanGame(value) {
+    const s = String(value || '').trim().replace(/^"+|"+$/g, '').trim().replace(/\//g, '\\');
+    if (/^[a-z]:\\/i.test(s)) {
+      const full = s.slice(0, 3) + s.slice(3).replace(/\\{2,}/g, '\\');
+      if (!/\.exe$/i.test(full)) return { erreur: 'Le chemin doit finir par .exe' };
+      if (/[<>:"|?*]/.test(full.slice(2)) || full.length > 260) return { erreur: 'Chemin invalide' };
+      return { exe: full };
     }
+    let exe = s.split('\\').pop().trim();
+    if (!exe) return {};
+    if (!/\.exe$/i.test(exe)) exe += '.exe';
+    if (/[<>:"|?*]/.test(exe) || exe.length > 100) return { erreur: 'Nom de programme invalide' };
+    return { exe: exe };
+  }
+
+  function addGame(games, value) {
+    const clean = cleanGame(value);
+    if (clean.erreur) toast(clean.erreur);
+    if (!clean.exe) return false;
+    const exe = clean.exe;
     if ($$('.gs-game', games).some((c) => c.dataset.exe.toLowerCase() === exe.toLowerCase())) {
       toast(exe + ' est déjà dans la liste');
       return true;

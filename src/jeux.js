@@ -140,21 +140,83 @@ function listRunning() {
       { windowsHide: true, timeout: TASKLIST_TIMEOUT_MS, maxBuffer: 4 * 1024 * 1024 },
       (err, stdout) => {
         if (err) return reject(err);
-        const names = new Set();
+        const procs = [];
         stdout.split(/\r?\n/).forEach((line) => {
-          const m = /^"([^"]+)"/.exec(line);
-          if (m) names.add(m[1].toLowerCase());
+          const m = /^"([^"]+)","(\d+)"/.exec(line);
+          if (m) procs.push({ name: m[1].toLowerCase(), pid: Number(m[2]) });
         });
-        resolve(names);
+        resolve(procs);
       });
   });
+}
+
+// Chemin des .exe de ces PID. Win32_Process plutôt que Get-Process : il lit aussi le
+// chemin des jeux lancés en administrateur (anti-triche). Les PID sont des nombres : rien
+// d'extérieur n'entre dans la commande.
+function processPaths(pids) {
+  const cmd = '[Console]::OutputEncoding=[Text.Encoding]::UTF8;' +
+    'Get-CimInstance Win32_Process -Filter \'' + pids.map((p) => 'ProcessId=' + p).join(' OR ') + '\'' +
+    ' | ForEach-Object { $_.ProcessId.ToString() + [char]9 + $_.ExecutablePath }';
+  return new Promise((resolve, reject) => {
+    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd],
+      { windowsHide: true, timeout: PATHS_TIMEOUT_MS, maxBuffer: 1024 * 1024, encoding: 'utf8' },
+      (err, stdout) => {
+        if (err) return reject(err);
+        const out = new Map();
+        stdout.split(/\r?\n/).forEach((line) => {
+          const m = /^(\d+)\t(.+)$/.exec(line.trim());
+          if (m) out.set(Number(m[1]), m[2]);
+        });
+        resolve(out);
+      });
+  });
+}
+
+// Pour les jeux donnés par chemin : le chemin n'est demandé que pour les processus qui
+// portent le même nom de .exe, et une seule fois par processus (le chemin d'un PID ne
+// change pas). Sans règle par chemin, PowerShell n'est jamais lancé.
+async function resolvePaths(procs) {
+  const wanted = new Set();
+  activeRules().forEach((r) => r.jeux.filter(isPath).forEach((j) => wanted.add(label(j).toLowerCase())));
+  const alive = new Set(procs.map((p) => p.pid));
+  state.paths.forEach((v, pid) => { if (!alive.has(pid)) state.paths.delete(pid); });
+
+  const missing = procs.filter((p) => wanted.has(p.name) && !state.paths.has(p.pid)).slice(0, 20);
+  if (missing.length) {
+    let found = new Map();
+    try {
+      found = await processPaths(missing.map((p) => p.pid));
+    } catch (err) {
+      console.warn('Jeux : chemin des programmes illisible, repli sur le nom : ' + err.message);
+    }
+    // illisible : mémorisé aussi (null), pour ne pas relancer PowerShell toutes les 3 s
+    missing.forEach((p) => state.paths.set(p.pid, found.get(p.pid) || null));
+  }
+
+  state.runningPaths = new Set();
+  state.unknownPaths = new Set();
+  procs.forEach((p) => {
+    if (!wanted.has(p.name)) return;
+    const full = state.paths.get(p.pid);
+    if (full) state.runningPaths.add(full.toLowerCase());
+    else state.unknownPaths.add(p.name);
+  });
+}
+
+function isRunning(entry) {
+  if (!isPath(entry)) return state.running.has(entry.toLowerCase());
+  if (state.runningPaths.has(entry.toLowerCase())) return true;
+  // chemin illisible (processus protégé) : mieux vaut afficher sur le seul nom que jamais
+  return state.unknownPaths.has(label(entry).toLowerCase());
 }
 
 async function check() {
   if (state.busy) return;   // un tasklist lent ne doit pas s'empiler
   state.busy = true;
   try {
-    state.running = await listRunning();
+    const procs = await listRunning();
+    await resolvePaths(procs);
+    state.running = new Set(procs.map((p) => p.name));
     if (state.erreur) console.log('Jeux : programmes lancés de nouveau lisibles.');
     state.erreur = null;
     apply();
@@ -171,12 +233,12 @@ async function check() {
 function apply() {
   const visible = new Map();
   activeRules().forEach((r) => {
-    const jeu = r.jeux.find((j) => state.running.has(j.toLowerCase())) || null;
+    const jeu = r.jeux.find(isRunning) || null;
     if (!visible.get(r.source)) visible.set(r.source, jeu);
   });
   visible.forEach((jeu, source) => {
     if (Boolean(jeu) !== Boolean(state.visible.get(source))) {
-      console.log('Jeux : ' + source + (jeu ? ' affichée (' + jeu + ' lancé).' : ' masquée.'));
+      console.log('Jeux : ' + source + (jeu ? ' affichée (' + label(jeu) + ' lancé).' : ' masquée.'));
     }
   });
   state.visible = visible;
@@ -229,7 +291,7 @@ function obsSources() {
 const PS_LIST =
   '[Console]::OutputEncoding=[Text.Encoding]::UTF8;' +
   'Get-Process | Where-Object { $_.MainWindowTitle } | ForEach-Object {' +
-  ' $_.ProcessName + [char]9 + $_.MainWindowTitle }';
+  ' $_.ProcessName + [char]9 + $_.Path + [char]9 + $_.MainWindowTitle }';
 
 function listWindows() {
   return new Promise((resolve, reject) => {
@@ -240,12 +302,15 @@ function listWindows() {
         const seen = new Set();
         const out = [];
         stdout.split(/\r?\n/).forEach((line) => {
-          const tab = line.indexOf('\t');
-          if (tab < 1) return;
-          const exe = exeName(line.slice(0, tab));
+          // nom <TAB> chemin (vide si illisible) <TAB> titre, qui peut contenir des tabulations
+          const parts = line.split('\t');
+          if (parts.length < 3) return;
+          const exe = exeName(parts[0]);
           if (!exe || NOT_GAMES.has(exe.toLowerCase()) || seen.has(exe.toLowerCase())) return;
           seen.add(exe.toLowerCase());
-          out.push({ exe: exe, titre: line.slice(tab + 1).trim().slice(0, 120) });
+          const chemin = gameEntry(parts[1]);
+          out.push({ exe: exe, chemin: chemin && isPath(chemin) ? chemin : null,
+                     titre: parts.slice(2).join(' ').trim().slice(0, 120) });
         });
         resolve(out.sort((a, b) => a.titre.localeCompare(b.titre, 'fr')));
       });
@@ -267,13 +332,14 @@ async function choices() {
 /* ===================== état pour l'accueil ===================== */
 
 function status() {
-  const rules = activeRules();
-  if (!rules.length) {
+  if (!activeRules().length) {
     return { niveau: 'off', texte: 'À configurer',
              detail: 'Choisis une source de tes scènes OBS et les jeux pendant lesquels elle s\'affiche.' };
   }
   const sources = {};
-  state.visible.forEach((jeu, source) => { sources[source] = { visible: Boolean(jeu), jeu: jeu }; });
+  state.visible.forEach((jeu, source) => {
+    sources[source] = { visible: Boolean(jeu), jeu: jeu ? label(jeu) : null };
+  });
   if (state.erreur) return { niveau: 'warn', texte: 'Problème', detail: state.erreur, sources: sources };
   if (!state.running) return { niveau: 'warn', texte: 'Démarrage…', sources: sources };
   if (!obsFresh()) {

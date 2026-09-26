@@ -696,6 +696,8 @@ button:disabled { opacity: 0.5; cursor: default; }
   animation: view-in 0.15s ease-out;
 }
 
+.gs-game .gs-dir { opacity: 0.6; }
+
 button.gs-x {
   width: 18px;
   height: 18px;

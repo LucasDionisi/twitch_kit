@@ -12,7 +12,8 @@ téléchargement.
   l'écran pendant que tu changes de scène. Tu choisis la vitesse, la direction et les
   couleurs sur sa page, puis tu l'exportes en vidéo pour OBS.
 - **Sources selon le jeu** : une source de tes scènes (ta manette…) ne s'affiche que
-  pendant les jeux que tu choisis, et se masque toute seule le reste du temps.
+  pendant les jeux que tu choisis, et se masque toute seule le reste du temps. Un jeu se
+  choisit par son nom, ou par son emplacement quand deux jeux portent le même nom.
 
 ### À faire après la mise à jour
 

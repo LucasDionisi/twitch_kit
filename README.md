@@ -270,6 +270,9 @@ où elle est, dans autant de scènes que tu veux.
 3. Dans le premier champ, choisis ta source (la liste montre les sources de ton OBS).
 4. Clique dans **Ajouter un jeu** et choisis ton jeu dans la liste. S'il n'y est pas, tape
    le nom de son programme (par exemple `RocketLeague.exe`) puis **Ajouter**.
+   Deux jeux ont le même nom de programme (un lanceur, `game.exe`…) ? Choisis la ligne
+   **ce dossier seulement**, ou colle son chemin complet : dans l'Explorateur,
+   Maj + clic droit sur le programme → **Copier en tant que chemin d'accès**.
 5. Ajoute autant de jeux que tu veux, puis clique sur **Enregistrer**.
 
 La source s'affiche quelques secondes après le lancement du jeu, et se masque quand tu le

@@ -92,7 +92,12 @@ par deux overlays OBS) :
   deux fichiers de `data/`, une ligne par source (pas de JSON côté Lua) :
   `game_sources_state.txt` (écrit ici, tmp + rename, seulement quand l'état change :
   `1<TAB>Manette`) et `obs_sources.txt` (écrit par le Lua toutes les 10 s : noms des
-  sources, et signe de vie → « OBS ne répond pas » au-delà de 30 s). `choices()` (route
+  sources, et signe de vie → « OBS ne répond pas » au-delà de 30 s). Un jeu est un nom
+  (`game.exe`, tout dossier) ou un chemin complet (ce programme-là seulement) : `tasklist`
+  n'ayant pas les chemins, `resolvePaths()` les lit par `Win32_Process` (PowerShell)
+  **seulement** pour les PID dont le nom correspond à un jeu donné par chemin, une fois
+  par PID (cache purgé quand le processus disparaît) ; chemin illisible → repli sur le
+  nom. `choices()` (route
   `GET /game_sources/choices`, same-origin seulement) liste les programmes à fenêtre via
   PowerShell (titres en UTF-8), à la demande. `/status` porte en plus `sources`
   (`{ nom: { visible, jeu } }`) pour les badges de la page.
