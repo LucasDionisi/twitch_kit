@@ -49,6 +49,23 @@ Pour l'instant, le repo n'est qu'un socle, **sans aucune fonctionnalité** :
 - Le zip ne contient jamais `config/` ni `data/` : une mise à jour extraite par-dessus garde
   clés et autorisations. Ne rien y mettre qui doive être livré.
 
+## Design et page d'accueil
+
+- **Tous les visuels sont élégants, simples et « sexy »** : overlays comme pages de
+  réglages. Peu d'éléments, une typo soignée, des espacements généreux, des couleurs
+  cohérentes, des animations discrètes. Pas de surcharge, pas d'effet gadget : un streamer
+  doit avoir envie de le montrer à l'écran tel quel.
+- **L'accueil est le point d'entrée unique** : chaque fonctionnalité y est listée, et il doit
+  rester organisé pour être compris et utilisé sans lire de doc. Regrouper par usage, aller
+  du plus important au détail, un seul appel à l'action clair par carte, l'état visible
+  d'un coup d'œil (prêt / à configurer / autorisation à refaire).
+- **Chaque fonctionnalité dit exactement quoi faire dans OBS**, directement sur sa carte.
+  Pour un overlay : l'URL à copier (bouton copier), le type de source (Navigateur), la
+  **largeur et la hauteur à régler**, et tout réglage OBS utile (ex. « Actualiser le
+  navigateur quand la scène devient active », fond transparent). Plus un aperçu via
+  `?demo=1`. Ces infos vivent dans l'entrée de `overlays/features.js`, pas en dur dans
+  `home.js`.
+
 ## Reprendre depuis twitch_tools
 
 Les futures fonctionnalités se portent depuis `twitch_tools`, en en reprenant les règles :
