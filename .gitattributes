@@ -1,0 +1,3 @@
+# lanceurs Windows : wscript et cmd veulent des fins de ligne CRLF
+*.vbs text eol=crlf
+*.bat text eol=crlf

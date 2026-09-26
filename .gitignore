@@ -1,0 +1,18 @@
+# secrets — ne jamais commiter (écrit par la page d'accueil)
+config/
+
+# généré par le serveur : tokens, log, pid
+data/
+
+# node.exe embarqué, ajouté seulement dans le zip de release
+runtime/
+
+# écrit par le workflow de release
+VERSION
+
+# divers
+node_modules/
+*.log
+Thumbs.db
+desktop.ini
+.DS_Store

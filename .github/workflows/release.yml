@@ -1,0 +1,53 @@
+# Fabrique le zip que le streamer télécharge : le projet + un node.exe portable officiel,
+# pour qu'il n'ait rien à installer. Se lance en poussant un tag :
+#   git tag v0.1.0
+#   git push origin v0.1.0
+# config/ et data/ ne sont jamais dans le zip : une mise à jour extraite par-dessus garde
+# les clés et les autorisations du streamer.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  NODE_MAJOR: '24'   # dernière version de cette branche LTS au moment du build
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Télécharger node.exe (Windows x64)
+        run: |
+          set -euo pipefail
+          base="https://nodejs.org/dist/latest-v${NODE_MAJOR}.x"
+          curl -fsSL "$base/SHASUMS256.txt" -o SHASUMS256.txt
+          archive=$(grep -oE 'node-v[0-9.]+-win-x64\.zip' SHASUMS256.txt | head -n1)
+          echo "Archive : $archive"
+          curl -fsSL "$base/$archive" -o "$archive"
+          grep " $archive\$" SHASUMS256.txt | sha256sum -c -
+          unzip -q "$archive" '*/node.exe' -d node_dl
+          mkdir -p runtime
+          mv node_dl/*/node.exe runtime/node.exe
+
+      - name: Assembler le zip
+        run: |
+          set -euo pipefail
+          echo "${GITHUB_REF_NAME}" > VERSION
+          dest=build/twitch_kit
+          mkdir -p "$dest"
+          cp -r src overlays runtime "$dest"/
+          cp obs_twitch_kit.lua start_server_hidden.vbs start_server_debug.bat README.md VERSION "$dest"/
+          # fins de ligne Windows pour les lanceurs, lus par wscript et cmd
+          sed -i 's/\r*$/\r/' "$dest/start_server_hidden.vbs" "$dest/start_server_debug.bat"
+          (cd build && zip -qr ../twitch_kit.zip twitch_kit)
+
+      - name: Publier la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" twitch_kit.zip --title "$GITHUB_REF_NAME" --generate-notes

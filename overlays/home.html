@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Twitch Kit</title>
+<!-- Page d'accueil, ouverte par http://127.0.0.1:8787/ : saisie des clés, autorisation
+     des comptes et liste des fonctionnalités. Pas une source OBS. -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
+<link rel="stylesheet" href="home.css">
+</head>
+<body>
+  <main>
+    <header class="top">
+      <div class="brand"><span class="brand-dot"></span>Twitch Kit</div>
+      <p class="lead">Les outils de ton stream. Commence par connecter ta chaîne Twitch,
+        le reste est facultatif.</p>
+    </header>
+
+    <div id="offline" class="banner" hidden>
+      Le serveur ne répond pas. Vérifie qu'OBS est ouvert et que le script
+      <b>obs_twitch_kit.lua</b> est bien chargé (Outils → Scripts).
+    </div>
+
+    <!-- ===================== connexions ===================== -->
+    <section>
+      <h2>Connexions</h2>
+
+      <!-- chaîne Twitch -->
+      <article class="card" id="card-twitch">
+        <div class="card-head">
+          <div>
+            <h3>Chaîne Twitch</h3>
+            <p class="muted">Ton compte de streamer. Indispensable.</p>
+          </div>
+          <span class="pill" data-level="off"><span class="dot"></span><span class="pill-text">…</span></span>
+        </div>
+
+        <details class="keys" id="keys-twitch">
+          <summary>Clés de l'application Twitch</summary>
+          <div class="keys-body">
+            <p class="muted">À créer une seule fois sur
+              <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noopener">dev.twitch.tv/console/apps</a>
+              (le guide pas à pas est dans le README). Dans le champ <b>OAuth Redirect URLs</b>,
+              colle exactement cette adresse :</p>
+            <div class="copy-row">
+              <code data-field="twitch-redirect">…</code>
+              <button type="button" class="ghost" data-copy="twitch-redirect">Copier</button>
+            </div>
+            <form data-setup="twitch">
+              <label>Client ID <input name="client_id" autocomplete="off" spellcheck="false"></label>
+              <label>Secret <input name="client_secret" type="password" autocomplete="off" spellcheck="false"></label>
+              <div class="form-foot">
+                <button type="submit">Enregistrer</button>
+                <span class="form-msg"></span>
+              </div>
+            </form>
+          </div>
+        </details>
+
+        <div class="card-actions">
+          <a class="button" href="/auth" data-auth="twitch">Autoriser ma chaîne</a>
+        </div>
+      </article>
+
+      <!-- bot -->
+      <article class="card" id="card-bot">
+        <div class="card-head">
+          <div>
+            <h3>Compte du bot <span class="tag">facultatif</span></h3>
+            <p class="muted">Un second compte Twitch qui parlera dans ton chat.</p>
+          </div>
+          <span class="pill" data-level="off"><span class="dot"></span><span class="pill-text">…</span></span>
+        </div>
+
+        <details class="keys" id="keys-bot">
+          <summary>Pseudo du bot</summary>
+          <div class="keys-body">
+            <p class="muted">Le pseudo du compte Twitch du bot. Il sert de garde-fou : si tu
+              autorises par erreur ton compte principal, rien n'est enregistré.</p>
+            <form data-setup="bot">
+              <label>Pseudo <input name="login" autocomplete="off" spellcheck="false" placeholder="monbot"></label>
+              <div class="form-foot">
+                <button type="submit">Enregistrer</button>
+                <span class="form-msg"></span>
+              </div>
+            </form>
+          </div>
+        </details>
+
+        <div class="card-actions stack">
+          <p class="muted">Pour l'autoriser, ouvre une <b>fenêtre de navigation privée</b>
+            (Ctrl+Maj+N), connecte-toi à Twitch avec le compte du bot, puis colle cette adresse :</p>
+          <div class="copy-row">
+            <code data-field="bot-auth">…</code>
+            <button type="button" class="ghost" data-copy="bot-auth">Copier</button>
+          </div>
+        </div>
+      </article>
+
+      <!-- Spotify -->
+      <article class="card" id="card-spotify">
+        <div class="card-head">
+          <div>
+            <h3>Spotify <span class="tag">facultatif</span></h3>
+            <p class="muted">Pour afficher la musique en cours. Un compte gratuit suffit.</p>
+          </div>
+          <span class="pill" data-level="off"><span class="dot"></span><span class="pill-text">…</span></span>
+        </div>
+
+        <details class="keys" id="keys-spotify">
+          <summary>Clés de l'application Spotify</summary>
+          <div class="keys-body">
+            <p class="muted">À créer une seule fois sur
+              <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a>.
+              Dans <b>Redirect URIs</b>, colle exactement cette adresse :</p>
+            <div class="copy-row">
+              <code data-field="spotify-redirect">…</code>
+              <button type="button" class="ghost" data-copy="spotify-redirect">Copier</button>
+            </div>
+            <form data-setup="spotify">
+              <label>Client ID <input name="client_id" autocomplete="off" spellcheck="false"></label>
+              <label>Secret <input name="client_secret" type="password" autocomplete="off" spellcheck="false"></label>
+              <div class="form-foot">
+                <button type="submit">Enregistrer</button>
+                <span class="form-msg"></span>
+              </div>
+              <p class="muted small">Pour ne plus utiliser Spotify, vide les deux champs et enregistre.</p>
+            </form>
+          </div>
+        </details>
+
+        <div class="card-actions">
+          <a class="button" href="/auth/spotify" data-auth="spotify">Autoriser Spotify</a>
+        </div>
+      </article>
+    </section>
+
+    <!-- ===================== fonctionnalités ===================== -->
+    <section>
+      <h2>Fonctionnalités</h2>
+      <div id="features" class="features"></div>
+    </section>
+
+    <footer class="foot muted">
+      <span>Version <span data-field="version">…</span></span>
+      <span>Mets cette page en favori : <code data-field="home">…</code></span>
+      <a href="/status" target="_blank">Diagnostic</a>
+    </footer>
+  </main>
+
+  <div id="toast" role="status"></div>
+
+  <script src="features.js"></script>
+  <script src="home.js"></script>
+</body>
+</html>
