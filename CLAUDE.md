@@ -24,7 +24,9 @@ Pour l'instant, le repo n'est qu'un socle, **sans aucune fonctionnalité** :
   prend `runtime\node.exe` s'il existe (zip de release), sinon `node` du PATH (dev).
   `start_server_debug.bat` : même chose avec fenêtre.
 - `.github/workflows/release.yml` — sur un tag `v*`, assemble `twitch_kit.zip` avec un
-  `node.exe` portable officiel (somme SHA256 vérifiée) et écrit `VERSION`.
+  `node.exe` portable officiel (somme SHA256 vérifiée) et écrit `VERSION`. La marche à
+  suivre pour publier est dans `RELEASE.md` (pour l'auteur, pas livré dans le zip) : à
+  tenir à jour si le workflow change.
 
 ## Règles propres à ce repo
 

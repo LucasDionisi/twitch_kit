@@ -1,127 +1,226 @@
 # Twitch Kit
 
-Des outils pour ton stream Twitch, qui se lancent tout seuls avec OBS.
-Rien à installer : tout est dans le dossier que tu télécharges.
+Des outils pour ton stream Twitch, qui s'allument tout seuls avec OBS.
 
-Ce guide se fait **une seule fois**, en 15 minutes environ. Tu as besoin de :
+**Il n'y a rien à installer.** Tu télécharges un dossier, tu le branches sur OBS, et
+tout le reste se fait depuis une page de ton navigateur.
 
-- OBS Studio sur un PC Windows ;
-- ton compte Twitch, avec la **double authentification activée** (Twitch l'exige pour
-  l'étape 3 — Paramètres → Sécurité et confidentialité) ;
-- *facultatif* : un second compte Twitch pour le bot, un compte Spotify.
+La mise en place se fait **une seule fois** et prend environ 15 minutes.
 
 ---
 
-## 1. Télécharger
+## Avant de commencer
 
-1. Va dans la section **Releases** de cette page GitHub (colonne de droite) et télécharge
-   **`twitch_kit.zip`** de la version la plus récente.
-2. **Avant d'extraire** : clic droit sur le zip → **Propriétés** → coche **Débloquer** en
-   bas de la fenêtre → **OK**. Sans ça, Windows peut bloquer les fichiers téléchargés.
-3. Clic droit → **Extraire tout**, dans un dossier où il restera, par exemple
-   `Documents\twitch_kit`.
+Il te faut :
 
-> Ne déplace plus ce dossier ensuite : OBS retient son emplacement.
+- **OBS Studio**, sur un PC Windows ;
+- ton **compte Twitch** ;
+- la **double authentification** activée sur ce compte Twitch. Si ce n'est pas déjà fait :
+  sur Twitch, clique sur ton avatar → **Paramètres** → **Sécurité et confidentialité** →
+  **Activer l'authentification à deux facteurs**.
 
-## 2. Brancher sur OBS
+---
 
-1. Dans OBS : menu **Outils** → **Scripts**.
-2. Clique sur le **+** en bas à gauche et choisis le fichier **`obs_twitch_kit.lua`** dans
-   le dossier `twitch_kit`.
-3. Clique sur **Ouvrir la page d'accueil** : ton navigateur s'ouvre sur
-   <http://127.0.0.1:8787/>.
+## Étape 1 — Télécharger
 
-**Mets cette page en favori** : c'est là que tout se règle. Elle ne marche que quand OBS
-est ouvert.
+1. Sur cette page GitHub, regarde dans la colonne de droite et clique sur **Releases**.
+2. Dans la version la plus haute de la liste, clique sur **twitch_kit.zip** pour le
+   télécharger.
+3. Va dans ton dossier **Téléchargements**. Fais un **clic droit** sur `twitch_kit.zip` →
+   **Propriétés**.
+4. En bas de la fenêtre, coche la case **Débloquer**, puis clique sur **OK**.
+   *(Si tu ne vois pas cette case, tout va bien, passe à la suite.)*
+5. Fais un **clic droit** sur `twitch_kit.zip` → **Extraire tout…** → choisis ton dossier
+   **Documents** → **Extraire**.
 
-Le script est mémorisé par **collection de scènes** : si tu changes de collection dans OBS,
-refais l'étape 2.
+Tu as maintenant un dossier `Documents\twitch_kit`.
 
-## 3. Connecter ta chaîne Twitch
+⚠️ **Ne déplace plus jamais ce dossier.** OBS a besoin qu'il reste à cet endroit.
 
-Twitch demande de créer une « application » pour que les outils aient le droit de lire ta
-chaîne. C'est gratuit et ça ne se voit nulle part.
+---
 
-1. Va sur <https://dev.twitch.tv/console/apps> et connecte-toi avec ton compte de streamer.
-2. Clique sur **Enregistrer votre application** (*Register Your Application*).
+## Étape 2 — Brancher sur OBS
+
+1. Ouvre OBS.
+2. En haut, clique sur le menu **Outils**, puis sur **Scripts**.
+3. En bas à gauche de la fenêtre, clique sur le bouton **+**.
+4. Va dans `Documents\twitch_kit` et choisis le fichier **obs_twitch_kit.lua**.
+5. Clique sur le bouton **Ouvrir la page d'accueil**.
+
+Ton navigateur s'ouvre sur la **page d'accueil** de Twitch Kit.
+
+⭐ **Ajoute cette page à tes favoris.** C'est là que tout se règle.
+Elle ne s'affiche que quand OBS est ouvert : c'est normal.
+
+---
+
+## Étape 3 — Connecter ta chaîne Twitch
+
+Twitch demande de créer une « application » pour donner le droit à Twitch Kit de lire ce
+qui se passe sur ta chaîne. C'est gratuit, et personne d'autre ne la voit.
+
+Garde la page d'accueil ouverte dans un onglet : tu vas copier des choses entre les deux.
+
+**A. Créer l'application**
+
+1. Dans un nouvel onglet, va sur <https://dev.twitch.tv/console/apps> et connecte-toi
+   avec ton compte Twitch.
+2. Clique sur **Register Your Application** (Enregistrer votre application).
+3. Remplis le formulaire :
+   - **Name** (Nom) : invente un nom, par exemple `twitchkit-` suivi de ton pseudo.
+   - **OAuth Redirect URLs** : retourne sur la page d'accueil, dans le cadre
+     **Chaîne Twitch**. Clique sur **Clés de l'application Twitch**, puis sur le bouton
+     **Copier**. Reviens sur Twitch et colle (Ctrl+V).
+   - **Category** (Catégorie) : choisis **Broadcaster Suite**.
+   - **Client Type** (Type de client) : choisis **Confidential** (Confidentiel).
+4. Coche « Je ne suis pas un robot » si on te le demande, puis clique sur **Create**
+   (Créer).
+
+**B. Récupérer les deux clés**
+
+1. Dans la liste, à côté de ton application, clique sur **Manage** (Gérer).
+2. Tout en bas, tu vois **Client ID** : copie ce code et colle-le dans la case
+   **Client ID** de la page d'accueil.
+3. Sur Twitch, clique sur **New Secret** (Nouveau secret), puis sur **OK**. Un code
+   apparaît : copie-le et colle-le dans la case **Secret** de la page d'accueil.
+   *(Twitch ne le montre qu'une seule fois. Si tu le perds, reclique sur New Secret.)*
+4. Sur la page d'accueil, clique sur **Enregistrer**.
+
+**C. Autoriser**
+
+1. Clique sur le bouton violet **Autoriser ma chaîne**.
+2. Twitch te demande si tu es d'accord : clique sur **Autoriser**.
+
+Tu reviens sur la page d'accueil, et le cadre **Chaîne Twitch** affiche
+**Connecté : ton pseudo** avec un point vert. 🎉
+
+**C'est terminé pour l'essentiel.** Les étapes 4 et 5 sont facultatives.
+
+---
+
+## Étape 4 — Le bot *(facultatif)*
+
+Le bot est un second compte Twitch qui écrira dans ton chat.
+
+1. Crée un nouveau compte Twitch pour ton bot (déconnecte-toi de Twitch, puis
+   **S'inscrire**). Reconnecte-toi ensuite avec ton compte habituel.
+2. Dans le chat de ta chaîne, écris `/mod` suivi du pseudo du bot, par exemple
+   `/mod monbot`, puis Entrée. Ton bot devient modérateur.
+3. Sur la page d'accueil, dans le cadre **Compte du bot**, clique sur **Pseudo du bot**,
+   écris son pseudo et clique sur **Enregistrer**.
+4. Dans le même cadre, clique sur **Copier**.
+5. Ouvre une **fenêtre de navigation privée** : appuie en même temps sur
+   **Ctrl + Maj + N**.
+6. Dans cette fenêtre, va sur <https://www.twitch.tv>, et connecte-toi avec **le compte du
+   bot**.
+7. Toujours dans cette fenêtre, clique dans la barre d'adresse, colle (Ctrl+V) et appuie
+   sur Entrée. Clique sur **Autoriser**.
+8. Ferme la fenêtre privée et retourne sur la page d'accueil.
+
+Le cadre **Compte du bot** affiche **Connecté : pseudo du bot**.
+
+*Pourquoi la fenêtre privée ? Sinon Twitch utilise le compte déjà connecté, c'est-à-dire
+le tien. Si ça arrive, pas de panique : rien n'est enregistré, recommence simplement à
+l'étape 5.*
+
+---
+
+## Étape 5 — Spotify *(facultatif)*
+
+Pour afficher la musique que tu écoutes. Un compte Spotify gratuit suffit.
+
+1. Va sur <https://developer.spotify.com/dashboard> et connecte-toi avec ton compte
+   Spotify. Accepte les conditions si on te le demande.
+2. Clique sur **Create app**.
 3. Remplis :
-   - **Nom** : ce que tu veux, mais unique sur Twitch (ex. `twitchkit-tonpseudo`) ;
-   - **URL de redirection OAuth** : sur la page d'accueil, carte **Chaîne Twitch**, clique
-     sur **Copier** à côté de l'adresse, puis colle-la ici. Elle doit être exactement
-     `http://localhost:8787/auth/callback` ;
-   - **Catégorie** : *Broadcaster Suite* ;
-   - **Type de client** : *Confidentiel* (*Confidential*).
-4. Clique sur **Créer**, puis sur **Gérer** à côté de ton application.
-5. Copie l'**ID client** et colle-le dans le champ **Client ID** de la page d'accueil.
-6. Clique sur **Nouveau secret**, copie-le et colle-le dans le champ **Secret**.
-   (Twitch ne le montre qu'une fois : si tu le perds, refais « Nouveau secret ».)
-7. Clique sur **Enregistrer**, puis sur **Autoriser ma chaîne** et accepte.
+   - **App name** : ce que tu veux, par exemple `Twitch Kit` ;
+   - **App description** : ce que tu veux, par exemple `Mon stream` ;
+   - **Redirect URIs** : sur la page d'accueil, dans le cadre **Spotify**, clique sur
+     **Clés de l'application Spotify**, puis sur **Copier**. Reviens sur Spotify, colle,
+     et clique sur **Add** ;
+   - coche **Web API** ;
+   - coche la case qui accepte les conditions.
+4. Clique sur **Save**.
+5. Clique sur **Settings**. Copie le **Client ID** et colle-le dans la case **Client ID**
+   de la page d'accueil.
+6. Sur Spotify, clique sur **View client secret**, copie le code et colle-le dans la case
+   **Secret** de la page d'accueil.
+7. Clique sur **Enregistrer**, puis sur **Autoriser Spotify**, puis sur **Accepter**.
 
-La carte affiche **Connecté : ton pseudo**. C'est fini pour l'essentiel.
+---
 
-## 4. Le compte du bot *(facultatif)*
+## Ajouter un outil dans OBS
 
-Le bot écrit dans ton chat sous son propre nom.
+La partie **Fonctionnalités** de la page d'accueil liste les outils disponibles.
+Pour chaque outil, elle te donne une adresse à copier et une taille.
 
-1. Crée un second compte Twitch pour le bot.
-2. Dans ton chat, tape `/mod pseudodubot` pour le passer modérateur.
-3. Sur la page d'accueil, carte **Compte du bot** : écris son pseudo et **Enregistrer**.
-4. Ouvre une **fenêtre de navigation privée** (Ctrl+Maj+N), connecte-toi à Twitch **avec le
-   compte du bot**, puis colle dans cette fenêtre l'adresse donnée par la carte (bouton
-   **Copier**) et accepte.
+Pour en ajouter un dans OBS :
 
-La navigation privée évite que Twitch autorise ton compte principal à la place. Si ça
-arrive quand même, rien n'est enregistré : recommence simplement.
+1. Dans OBS, sélectionne ta scène. Dans le cadre **Sources**, clique sur **+** →
+   **Navigateur** → **OK**.
+2. Dans la case **URL**, efface ce qui est écrit et colle l'adresse copiée depuis la page
+   d'accueil.
+3. Mets la **Largeur** et la **Hauteur** indiquées sur la page d'accueil.
+4. Vérifie que ces deux cases sont **décochées** :
+   - **Fichier local**
+   - **Éteindre la source quand elle n'est pas visible**
+5. Clique sur **OK**.
 
-## 5. Spotify *(facultatif)*
-
-Pour afficher la musique en cours. Un compte gratuit suffit.
-
-1. Va sur <https://developer.spotify.com/dashboard> et clique sur **Create app**.
-2. Remplis :
-   - **App name** et **App description** : ce que tu veux ;
-   - **Redirect URIs** : copie l'adresse depuis la carte **Spotify** de la page d'accueil,
-     colle-la et clique sur **Add**. Elle doit être exactement
-     `http://127.0.0.1:8787/auth/spotify/callback` ;
-   - coche **Web API**, accepte les conditions, **Save**.
-3. Dans **Settings**, copie le **Client ID**, puis clique sur **View client secret** et
-   copie le secret.
-4. Colle les deux dans la carte **Spotify**, **Enregistrer**, puis **Autoriser Spotify**.
-
-## 6. Ajouter les outils dans OBS
-
-La section **Fonctionnalités** de la page d'accueil liste les outils disponibles. Pour
-chacun, elle donne l'adresse à copier et la taille de la source.
-
-Dans OBS, pour chaque outil :
-
-1. Dans ta scène, **+** → **Navigateur**.
-2. Colle l'adresse dans **URL**, mets la **largeur** et la **hauteur** indiquées.
-3. **Fichier local** : décoché.
-4. **Éteindre la source quand elle n'est pas visible** : décoché.
+---
 
 ## Mettre à jour
 
-1. Télécharge le nouveau `twitch_kit.zip` (et pense à **Débloquer**, voir étape 1).
-2. Ferme OBS.
-3. Extrais-le **au même endroit**, en acceptant de remplacer les fichiers.
+Quand une nouvelle version sort :
 
-Tes clés et tes autorisations sont gardées : rien à refaire.
+1. Télécharge le nouveau **twitch_kit.zip** (comme à l'étape 1).
+2. N'oublie pas : clic droit → **Propriétés** → **Débloquer** → **OK**.
+3. **Ferme OBS.**
+4. Clic droit sur le zip → **Extraire tout…** → choisis **Documents** (le même endroit que
+   la première fois) → **Extraire**. Si Windows demande quoi faire des fichiers qui
+   existent déjà, choisis **Remplacer**.
+5. Rouvre OBS.
 
-## En cas de problème
+Tes réglages sont gardés : tu n'as rien à refaire.
+Si un cadre de la page d'accueil affiche **Autorisation à refaire**, clique simplement
+sur son bouton **Autoriser**.
 
-| Ce que tu vois | Quoi faire |
-| --- | --- |
-| La page d'accueil ne s'ouvre pas | Vérifie qu'OBS est ouvert et que `obs_twitch_kit.lua` est dans Outils → Scripts. Sinon, clique sur **Démarrer maintenant** dans ce même panneau. |
-| Rien ne démarre après une mise à jour | Tu as sûrement oublié **Débloquer** le zip : refais l'étape 1 puis redémarre OBS. |
-| « redirect_mismatch » ou « URL de redirection invalide » chez Twitch | L'adresse collée dans l'application Twitch n'est pas exactement celle de la page d'accueil. Recopie-la avec le bouton **Copier**. |
-| « Autorisation à refaire » | Clique à nouveau sur **Autoriser** dans la carte concernée. Ça arrive après une mise à jour qui ajoute une fonctionnalité, ou si tu as changé ton mot de passe Twitch. |
-| « INVALID_CLIENT » chez Spotify | Le Client ID ou le secret est faux : recolle-les dans la carte Spotify. |
-| Le bot est connecté avec le mauvais compte | Refais l'étape 4 dans une fenêtre de **navigation privée**. |
-| Ton antivirus bloque un fichier du dossier | Autorise le dossier `twitch_kit` : tout tourne sur ton PC, rien n'est envoyé ailleurs qu'à Twitch et Spotify. |
+---
 
-Si rien de tout ça n'aide, dans OBS → Outils → Scripts → `obs_twitch_kit.lua`, clique sur
-**Ouvrir le journal** et envoie son contenu à la personne qui t'a donné l'outil.
+## Si quelque chose ne marche pas
 
-> Ne partage jamais le dossier `config` ni le dossier `data` : ils contiennent tes clés et
-> tes autorisations.
+**La page d'accueil ne s'ouvre pas.**
+Vérifie qu'OBS est ouvert. Dans OBS → **Outils** → **Scripts**, clique sur
+**obs_twitch_kit.lua**, puis sur **Démarrer maintenant**, et réessaie.
+
+**Rien ne marche depuis une mise à jour.**
+Tu as sûrement oublié de **Débloquer** le zip. Ferme OBS, recommence la mise à jour en
+cochant bien **Débloquer**, puis rouvre OBS.
+
+**Twitch affiche « redirect_mismatch » ou parle d'URL de redirection.**
+L'adresse collée à l'étape 3-A n'est pas la bonne. Sur <https://dev.twitch.tv/console/apps>,
+clique sur **Manage**, efface l'adresse, recopie-la avec le bouton **Copier** de la page
+d'accueil, et clique sur **Save**.
+
+**Un cadre affiche « Autorisation à refaire ».**
+Clique sur le bouton **Autoriser** de ce cadre. Ça arrive après certaines mises à jour, ou
+si tu as changé ton mot de passe Twitch.
+
+**Spotify affiche « INVALID_CLIENT ».**
+Une des deux clés Spotify est fausse. Recopie-les (étape 5, points 5 et 6), puis
+**Enregistrer**.
+
+**Le bot est connecté avec ton compte à toi.**
+Refais l'étape 4 à partir du point 5, bien dans une **fenêtre de navigation privée**.
+
+**Ton antivirus bloque un fichier.**
+Autorise le dossier `Documents\twitch_kit`. Tout fonctionne sur ton PC : rien n'est envoyé
+ailleurs qu'à Twitch et Spotify.
+
+**Toujours bloqué ?**
+Dans OBS → **Outils** → **Scripts** → **obs_twitch_kit.lua**, clique sur
+**Ouvrir le journal**. Envoie le texte qui s'affiche à la personne qui t'a donné l'outil.
+
+---
+
+🔒 **Ne partage jamais** les dossiers `config` et `data` qui se trouvent dans
+`Documents\twitch_kit` : ils contiennent tes clés secrètes.
