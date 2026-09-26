@@ -216,6 +216,23 @@ N'oublie pas de cliquer sur **Enregistrer** en bas.
 
 ---
 
+## Le dock OBS
+
+Un petit panneau dans la fenêtre d'OBS, à côté de tes scènes : il montre l'état de ta
+chaîne, du bot, de Spotify et de chaque outil, avec la même pastille que la page d'accueil
+(vert = tout va bien, orange = à regarder, rouge = à refaire). En haut à droite, un résumé :
+**Tout va bien** ou le nombre de points à voir. Clique sur une ligne pour ouvrir sa page.
+
+Pour l'ajouter, une seule fois :
+
+1. Sur la page d'accueil, clique sur la vignette **Dock OBS** et copie l'adresse.
+2. Dans OBS, menu **Docks** → **Docks personnalisés du navigateur**.
+3. Sur la ligne vide, écris **Twitch Kit** dans **Nom du dock** et colle l'adresse dans
+   **URL**. Clique sur **Appliquer**.
+4. Le dock apparaît : fais-le glisser où tu veux dans la fenêtre d'OBS.
+
+---
+
 ## Mettre à jour
 
 Quand une nouvelle version sort :

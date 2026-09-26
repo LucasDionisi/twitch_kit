@@ -28,7 +28,8 @@
 // pas affiché ; une fonctionnalité sans groupe connu tombe dans le dernier.
 window.FEATURE_GROUPS = [
   { id: 'overlays', nom: 'Overlays' },
-  { id: 'bot', nom: 'Bot du chat' }
+  { id: 'bot', nom: 'Bot du chat' },
+  { id: 'obs', nom: 'Dans OBS' }
 ];
 
 window.FEATURES = [
@@ -66,5 +67,17 @@ window.FEATURES = [
     groupe: 'bot',
     comptes: ['twitch', 'bot'],
     reglages: 'messages'
+  },
+  {
+    id: 'dock',
+    nom: 'Dock OBS',
+    description: 'Un petit panneau dans OBS, à côté de tes scènes : l\'état de Twitch Kit ' +
+                 'd\'un coup d\'œil pendant le stream.',
+    url: '/dock.html',
+    obs: 'Dans OBS, menu Docks → Docks personnalisés du navigateur. Sur la ligne vide, écris ' +
+         '« Twitch Kit » comme nom, colle l\'adresse ci-dessus comme URL, puis clique sur ' +
+         'Appliquer. Le dock apparaît : fais-le glisser où tu veux dans la fenêtre d\'OBS.',
+    groupe: 'obs',
+    comptes: []
   }
 ];

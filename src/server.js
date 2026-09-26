@@ -698,6 +698,18 @@ function overlayState(kind) {
   return { niveau: 'ok', texte: ph ? PHASE_TEXTE[ph] || 'Dans OBS' : 'Dans OBS' };
 }
 
+// Dock OBS : il sonde /status?dock=1. Un dock masqué ne sonde plus, d'où « déjà vu depuis
+// le démarrage » plutôt qu'un délai : le serveur redémarre à chaque ouverture d'OBS.
+let dockSeen = false;
+
+function dockState() {
+  if (!dockSeen) {
+    return { niveau: 'off', texte: 'Pas encore dans OBS',
+             detail: 'Ajoute le dock dans OBS avec l\'adresse ci-dessous : l\'état passera au vert.' };
+  }
+  return { niveau: 'ok', texte: 'Dans OBS' };
+}
+
 /* ---------- état pour la page d'accueil ---------- */
 
 function accountStatus(account) {
@@ -735,7 +747,8 @@ function statusPayload() {
     fonctionnalites: {
       polls: pollsState(),
       poll_overlay: overlayState('poll'),
-      prediction_overlay: overlayState('prediction')
+      prediction_overlay: overlayState('prediction'),
+      dock: dockState()
     }
   };
 }
@@ -754,7 +767,10 @@ const server = http.createServer(async (req, res) => {
   try {
     if (pathname === '/') return serveStatic(req, res, '/home.html');
 
-    if (pathname === '/status') return sendJson(res, 200, statusPayload());
+    if (pathname === '/status') {
+      if (url.searchParams.has('dock')) dockSeen = true;
+      return sendJson(res, 200, statusPayload());
+    }
 
     if (SETUP_ROUTES.has(pathname)) return await handleSetup(req, res, pathname);
 
