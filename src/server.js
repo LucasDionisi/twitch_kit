@@ -17,6 +17,9 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const spotify = require('./spotify.js');
+const eventsub = require('./eventsub.js');
+const chat = require('./chat.js');
+const polls = require('./polls.js');
 
 const ROOT = path.join(__dirname, '..');       // le code vit dans src/
 const WEB_ROOT = path.join(ROOT, 'overlays');  // seul dossier exposé en HTTP
@@ -24,6 +27,8 @@ const CONFIG_DIR = path.join(ROOT, 'config');  // écrit par la page d'accueil
 const DATA_DIR = path.join(ROOT, 'data');      // ce que le serveur génère
 
 const CREDENTIALS_FILE = path.join(CONFIG_DIR, 'credentials.json');
+// réglages des fonctionnalités, écrits par la page d'accueil (rien de secret)
+const SETTINGS_FILE = path.join(CONFIG_DIR, 'settings.json');
 const TOKENS_FILE = path.join(DATA_DIR, 'tokens.json');
 const BOT_TOKENS_FILE = path.join(DATA_DIR, 'tokens_bot.json');
 const SPOTIFY_TOKENS_FILE = path.join(DATA_DIR, 'tokens_spotify.json');
@@ -36,13 +41,14 @@ const VERSION_FILE = path.join(ROOT, 'VERSION');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 fs.mkdirSync(CONFIG_DIR, { recursive: true });
 
-// Permissions demandées à la chaîne. Aucune tant qu'aucune fonctionnalité n'en a besoin :
-// Twitch accepte une autorisation sans scope, elle suffit à identifier la chaîne.
-// Chaque fonctionnalité ajoute ici les siens ; checkScopes() signale ensuite sur la page
-// d'accueil qu'il faut réautoriser.
-const SCOPES = [];
-// le bot n'a besoin que d'écrire dans le chat
-const BOT_SCOPES = ['user:write:chat', 'user:bot'];
+// Permissions demandées à la chaîne. Chaque fonctionnalité ajoute ici les siens ;
+// checkScopes() signale ensuite sur la page d'accueil qu'il faut réautoriser.
+const SCOPES = [
+  'channel:read:polls',         // sondages annoncés dans le chat
+  'channel:read:predictions'    // prédictions annoncées dans le chat
+];
+// le bot écrit dans le chat, en message normal ou en annonce (s'il est modérateur)
+const BOT_SCOPES = ['user:write:chat', 'user:bot', 'moderator:manage:announcements'];
 
 const VERSION = (() => {
   try {
@@ -317,6 +323,7 @@ function applyCredentials(next) {
     }
     broadcaster.forget();
     botAccount.forget();
+    eventsub.stop();
   }
   // un bot autorisé sous un autre pseudo que celui qu'on vient de saisir ne compte plus
   if (next.bot.login && botAccount.tokens && botAccount.tokens.login &&
@@ -327,18 +334,24 @@ function applyCredentials(next) {
   spotify.setCredentials(next.spotify);
 }
 
+// Surveille credentials.json et settings.json (édition à la main).
 function watchCredentials() {
   // On surveille le dossier, pas le fichier : ça survit aux éditeurs qui remplacent
   // le fichier au lieu de l'écrire sur place.
-  let debounce = null;
+  const debounce = {};
+  const reloaders = {
+    [path.basename(CREDENTIALS_FILE)]: () => applyCredentials(loadCredentials(credentials)),
+    [path.basename(SETTINGS_FILE)]: () => applySettings(loadSettings(settings))
+  };
   try {
     fs.watch(CONFIG_DIR, (evt, filename) => {
-      if (filename !== path.basename(CREDENTIALS_FILE)) return;
-      clearTimeout(debounce);
-      debounce = setTimeout(() => applyCredentials(loadCredentials(credentials)), 150);
+      const reload = reloaders[filename];
+      if (!reload) return;
+      clearTimeout(debounce[filename]);
+      debounce[filename] = setTimeout(reload, 150);
     });
   } catch (err) {
-    console.warn('Surveillance de credentials.json impossible : ' + err.message);
+    console.warn('Surveillance du dossier config impossible : ' + err.message);
   }
 }
 
@@ -347,6 +360,37 @@ async function writeCredentials(next) {
   // appliqué tout de suite pour que la réponse reflète le nouvel état ; le watcher
   // repassera derrière avec les mêmes valeurs, sans effet
   applyCredentials(next);
+}
+
+/* ===================== réglages des fonctionnalités ===================== */
+// Une section par fonctionnalité, chacune validée et complétée par défaut par son module :
+// un fichier absent, ancien ou abîmé donne toujours des réglages utilisables.
+
+function normalizeSettings(raw) {
+  const src = raw && typeof raw === 'object' ? raw : {};
+  return { polls: polls.normalize(src.polls) };
+}
+
+function loadSettings(previous) {
+  if (!fs.existsSync(SETTINGS_FILE)) return normalizeSettings({});
+  try {
+    return normalizeSettings(JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8')));
+  } catch (err) {
+    console.warn('settings.json illisible, valeurs précédentes gardées : ' + err.message);
+    return previous || normalizeSettings({});
+  }
+}
+
+let settings = loadSettings(null);
+
+function applySettings(next) {
+  settings = next;
+  polls.setSettings(next.polls);
+}
+
+async function writeSettings(next) {
+  await fs.promises.writeFile(SETTINGS_FILE, JSON.stringify(next, null, 2) + '\n');
+  applySettings(next);
 }
 
 /* ===================== serveur HTTP ===================== */
@@ -483,16 +527,26 @@ function keyPair(body, current, label) {
   return { client_id: id, client_secret: secret };
 }
 
-async function handleSetup(req, res, pathname) {
+// Garde commune à toutes les routes /setup/* : renvoie le corps JSON, ou null après
+// avoir déjà répondu l'erreur.
+async function readSetupBody(req, res, max) {
   if (!setupRequestAllowed(req)) {
-    return sendJson(res, 403, { erreur: 'à modifier depuis la page d\'accueil' });
+    sendJson(res, 403, { erreur: 'à modifier depuis la page d\'accueil' });
+    return null;
   }
-  let body;
   try {
-    body = JSON.parse(await readBody(req, SETUP_BODY_MAX)) || {};
+    const body = JSON.parse(await readBody(req, max));
+    if (body && typeof body === 'object') return body;
   } catch (err) {
-    return sendJson(res, 400, { erreur: 'requête illisible' });
+    /* réponse juste en dessous */
   }
+  sendJson(res, 400, { erreur: 'requête illisible' });
+  return null;
+}
+
+async function handleSetup(req, res, pathname) {
+  const body = await readSetupBody(req, res, SETUP_BODY_MAX);
+  if (!body) return;
 
   const next = JSON.parse(JSON.stringify(credentials));
 
@@ -530,6 +584,52 @@ async function handleSetup(req, res, pathname) {
 
 const SETUP_ROUTES = new Set(['/setup/twitch', '/setup/bot', '/setup/spotify']);
 
+/* ---------- réglages des sondages et prédictions ---------- */
+
+// sept modèles de 450 caractères, emojis et accents comptant plusieurs octets
+const POLLS_BODY_MAX = 32 * 1024;
+
+async function handlePollsSetup(req, res, pathname) {
+  const body = await readSetupBody(req, res, POLLS_BODY_MAX);
+  if (!body) return;
+
+  if (pathname === '/setup/polls/test') {
+    try {
+      return sendJson(res, 200, Object.assign({ ok: true }, await polls.test(body)));
+    } catch (err) {
+      return sendJson(res, 400, { erreur: err.message });
+    }
+  }
+
+  const next = Object.assign({}, settings, { polls: polls.normalize(body) });
+  try {
+    await writeSettings(next);
+    console.log('Réglages enregistrés (sondages et prédictions).');
+    return sendJson(res, 200, { ok: true, reglages: next.polls });
+  } catch (err) {
+    console.warn('Écriture de settings.json impossible : ' + err.message);
+    return sendJson(res, 500, { erreur: 'enregistrement impossible : ' + err.message });
+  }
+}
+
+// État affiché sur la carte de la fonctionnalité, du plus bloquant au détail.
+// Les comptes non autorisés, la page d'accueil les signale déjà d'elle-même.
+function pollsState() {
+  if (!settings.polls.actif) return { niveau: 'off', texte: 'Désactivé' };
+  if (broadcaster.missingScopes.length || broadcaster.lastError) {
+    return { niveau: 'bad', texte: 'Autorisation à refaire',
+             detail: 'Clique sur « Autoriser ma chaîne » en haut de la page : Twitch doit te ' +
+                     'demander l\'accès à tes sondages et prédictions.' };
+  }
+  const ev = eventsub.status();
+  if (ev.erreur) return { niveau: 'warn', texte: 'Problème', detail: ev.erreur };
+  if (!ev.connecte) return { niveau: 'warn', texte: 'Connexion…' };
+  const ch = chat.status();
+  if (ch.erreur) return { niveau: 'warn', texte: 'Problème', detail: 'Dernier message non envoyé : ' + ch.erreur };
+  if (ch.avertissement) return { niveau: 'warn', texte: 'Actif', detail: ch.avertissement };
+  return { niveau: 'ok', texte: 'Actif' };
+}
+
 /* ---------- état pour la page d'accueil ---------- */
 
 function accountStatus(account) {
@@ -562,6 +662,10 @@ function statusPayload() {
       principal: accountStatus(broadcaster),
       bot: accountStatus(botAccount),
       spotify: spotify.status()
+    },
+    // état de chaque fonctionnalité, par id de overlays/features.js
+    fonctionnalites: {
+      polls: pollsState()
     }
   };
 }
@@ -583,6 +687,14 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/status') return sendJson(res, 200, statusPayload());
 
     if (SETUP_ROUTES.has(pathname)) return await handleSetup(req, res, pathname);
+
+    // réglages actuels + de quoi construire le formulaire (rien de secret)
+    if (pathname === '/settings/polls') {
+      return sendJson(res, 200, { reglages: settings.polls, modele: polls.describe() });
+    }
+    if (pathname === '/setup/polls' || pathname === '/setup/polls/test') {
+      return await handlePollsSetup(req, res, pathname);
+    }
 
     if (pathname === '/auth' || pathname === '/auth/bot') {
       if (!twitchConfigured()) {
@@ -618,6 +730,8 @@ const server = http.createServer(async (req, res) => {
       try {
         await account.exchangeCode(url.searchParams.get('code'));
         await checkScopes(account);
+        // nouveaux droits, voire autre chaîne : on se réabonne aux événements
+        if (account === broadcaster) eventsub.restart();
         return redirect(res, '/?connecte=' + (account === broadcaster ? 'twitch' : 'bot'));
       } catch (err) {
         console.error('Échange du code impossible :', err.message);
@@ -673,7 +787,9 @@ async function start() {
     console.error('Lecture du compte Twitch impossible : ' + err.message);
   }
   await checkScopes(broadcaster);
-  // c'est ici que les fonctionnalités démarreront (EventSub, relevés Helix…)
+  // sans les droits, Twitch refuserait les abonnements : la page d'accueil demande déjà
+  // de réautoriser, et le callback d'autorisation relancera EventSub
+  if (!broadcaster.missingScopes.length) eventsub.start();
 }
 
 /* ===================== fichier PID ===================== */
@@ -720,6 +836,11 @@ spotify.init({
   credentials: credentials.spotify,
   redirectUri: SPOTIFY_REDIRECT_URI
 });
+applySettings(settings);
+chat.init({ bot: botAccount, channel: broadcaster });
+polls.init({ send: chat.say });
+eventsub.init({ account: broadcaster });
+Object.keys(polls.events).forEach((type) => eventsub.on(type, '1', polls.events[type]));
 watchCredentials();
 
 server.listen(PORT, '127.0.0.1', async () => {

@@ -1,5 +1,6 @@
-/* Page d'accueil : état des comptes (sondé sur /status), saisie des clés, liste des
- * fonctionnalités (features.js). JS natif, aucun framework. */
+/* Page d'accueil : des tuiles (comptes et fonctionnalités de features.js) avec leur état,
+ * sondé sur /status ; chaque tuile ouvre la page de sa section (#nom) pour la saisie des
+ * clés et les réglages. JS natif, aucun framework. */
 'use strict';
 
 const POLL_MS = 5000;   // /status sondé seulement quand l'onglet est visible
@@ -24,10 +25,12 @@ function setField(name, value) {
   $$('[data-field="' + name + '"]').forEach((el) => { el.textContent = value; });
 }
 
-function setPill(card, level, text) {
-  const pill = $('.pill', card);
-  pill.dataset.level = level;
-  $('.pill-text', pill).textContent = text;
+// une même section a sa pastille sur la tuile de l'accueil et sur sa page
+function setPill(name, level, text) {
+  $$('.pill[data-state="' + name + '"]').forEach((pill) => {
+    pill.dataset.level = level;
+    $('.pill-text', pill).textContent = text;
+  });
 }
 
 function setAuthButton(name, enabled, label) {
@@ -48,9 +51,8 @@ function accountState(configured, account, keysMissing) {
 }
 
 function renderTwitch(s) {
-  const card = $('#card-twitch');
   const st = accountState(s.twitch.configured, s.comptes.principal, 'Clés à saisir');
-  setPill(card, st.level, st.text);
+  setPill('twitch', st.level, st.text);
   setAuthButton('twitch', s.twitch.configured,
                 st.level === 'ok' ? 'Autoriser un autre compte' : 'Autoriser ma chaîne');
   $('[data-auth="twitch"]').classList.toggle('secondary', st.level === 'ok');
@@ -67,18 +69,19 @@ function renderBot(s) {
   if (!s.twitch.configured) st = { level: 'off', text: 'Chaîne d\'abord' };
   else if (!bot.pseudoAttendu && !bot.authorized) st = { level: 'off', text: 'Non utilisé' };
   else st = accountState(true, bot, '');
-  setPill(card, st.level, st.text);
+  setPill('bot', st.level, st.text);
 
   setField('bot-auth', location.origin + '/auth/bot');
+  // commande à taper dans le chat pour que le bot puisse faire des annonces
+  setField('bot-mod', '/mod ' + (bot.login || bot.pseudoAttendu || 'pseudo_du_bot'));
   const input = $('form[data-setup="bot"] input[name="login"]');
   if (document.activeElement !== input && !input.dataset.touched) input.value = bot.pseudoAttendu || '';
   openKeysOnce('bot', s.twitch.configured && !bot.pseudoAttendu);
 }
 
 function renderSpotify(s) {
-  const card = $('#card-spotify');
   const st = accountState(s.spotify.configured, s.comptes.spotify, 'Non utilisé');
-  setPill(card, st.level, st.text);
+  setPill('spotify', st.level, st.text);
   const btn = $('[data-auth="spotify"]');
   btn.hidden = !s.spotify.configured;
   setAuthButton('spotify', s.spotify.configured,
@@ -117,60 +120,138 @@ function accountReady(s, name) {
   return false;
 }
 
-function renderFeatures(s) {
-  const root = $('#features');
-  const list = window.FEATURES || [];
-  root.textContent = '';
+// constructeurs des formulaires de réglages, par valeur de « reglages » dans features.js
+const SETTINGS_BUILDERS = {
+  messages: (root, f) => window.buildMessageSettings(root, f.id)
+};
 
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;
+  return node;
+}
+
+function pillNode(name) {
+  const pill = el('span', 'pill');
+  pill.dataset.state = name;
+  pill.dataset.level = 'off';
+  pill.append(el('span', 'dot'), el('span', 'pill-text', '…'));
+  return pill;
+}
+
+// Chaque fonctionnalité a une tuile sur l'accueil et sa page (#<id>). Les deux sont
+// construites une seule fois au chargement, puis seulement mises à jour : un formulaire
+// en cours de saisie ne doit pas disparaître au sondage suivant de /status.
+const featureCards = new Map();
+
+function buildFeatureTile(f) {
+  const tile = el('a', 'tile');
+  tile.href = '#' + f.id;
+  tile.append(pillNode(f.id), el('h3', null, f.nom), el('p', 'muted', f.description || ''));
+  return tile;
+}
+
+function buildFeatureView(f) {
+  const view = el('div', 'view');
+  view.id = 'view-' + f.id;
+  view.hidden = true;
+  const back = el('a', 'back', '← Accueil');
+  back.href = '#';
+  view.appendChild(back);
+
+  const card = el('article', 'card feature');
+  const head = el('div', 'card-head');
+  const text = el('div');
+  text.append(el('h3', null, f.nom), el('p', 'muted', f.description || ''));
+  head.append(text, pillNode(f.id));
+  card.appendChild(head);
+
+  card.needs = el('p', 'needs muted');
+  card.detail = el('p', 'detail');
+  card.append(card.needs, card.detail);
+
+  if (f.url) {
+    const row = el('div', 'copy-row');
+    const code = el('code', null, location.origin + f.url);
+    const copy = el('button', 'ghost', 'Copier');
+    copy.type = 'button';
+    copy.addEventListener('click', () => copyText(code.textContent));
+    row.append(code, copy);
+    card.appendChild(row);
+    if (f.taille) {
+      card.appendChild(el('p', 'needs muted', 'Source OBS : Navigateur, ' + f.taille[0] + ' × ' + f.taille[1]));
+    }
+  }
+  if (f.obs) card.appendChild(el('p', 'needs muted obs', f.obs));
+  view.appendChild(card);
+
+  const build = SETTINGS_BUILDERS[f.reglages];
+  if (build) {
+    const settings = el('article', 'card');
+    settings.appendChild(el('h3', 'card-title', 'Réglages'));
+    view.appendChild(settings);
+    build(settings, f);
+  }
+  featureCards.set(f.id, card);
+  return view;
+}
+
+function buildFeatures() {
+  const tiles = $('#features');
+  const views = $('#feature-views');
+  const list = window.FEATURES || [];
   if (!list.length) {
-    const empty = document.createElement('div');
-    empty.className = 'empty muted';
-    empty.textContent = 'Aucune fonctionnalité pour l\'instant. Elles apparaîtront ici au fil des mises à jour.';
-    root.appendChild(empty);
+    tiles.appendChild(el('div', 'empty muted',
+      'Aucune fonctionnalité pour l\'instant. Elles apparaîtront ici au fil des mises à jour.'));
     return;
   }
-
   list.forEach((f) => {
-    const card = document.createElement('article');
-    card.className = 'card feature';
-
-    const title = document.createElement('h3');
-    title.textContent = f.nom;
-    const desc = document.createElement('p');
-    desc.className = 'muted';
-    desc.textContent = f.description || '';
-    card.append(title, desc);
-
-    const missing = (f.comptes || []).filter((c) => !s || !accountReady(s, c));
-    if (missing.length) {
-      const needs = document.createElement('p');
-      needs.className = 'needs muted';
-      needs.textContent = 'À connecter d\'abord : ' + missing.map((c) => ACCOUNT_NAMES[c] || c).join(', ');
-      card.appendChild(needs);
-    }
-
-    if (f.url) {
-      const row = document.createElement('div');
-      row.className = 'copy-row';
-      const code = document.createElement('code');
-      code.textContent = location.origin + f.url;
-      const copy = document.createElement('button');
-      copy.type = 'button';
-      copy.className = 'ghost';
-      copy.textContent = 'Copier';
-      copy.addEventListener('click', () => copyText(code.textContent));
-      row.append(code, copy);
-      card.appendChild(row);
-      if (f.taille) {
-        const size = document.createElement('p');
-        size.className = 'needs muted';
-        size.textContent = 'Source OBS : Navigateur, ' + f.taille[0] + ' × ' + f.taille[1];
-        card.appendChild(size);
-      }
-    }
-    root.appendChild(card);
+    tiles.appendChild(buildFeatureTile(f));
+    views.appendChild(buildFeatureView(f));
   });
 }
+
+function updateFeature(f, s) {
+  const card = featureCards.get(f.id);
+  const missing = (f.comptes || []).filter((c) => !s || !accountReady(s, c));
+
+  // chaque compte manquant mène à sa page
+  card.needs.hidden = !missing.length;
+  card.needs.textContent = 'À connecter d\'abord : ';
+  missing.forEach((c, i) => {
+    if (i) card.needs.append(', ');
+    const link = el('a', null, ACCOUNT_NAMES[c] || c);
+    link.href = '#' + c;
+    card.needs.appendChild(link);
+  });
+
+  // l'état détaillé vient du serveur ; sans comptes connectés, inutile d'aller plus loin
+  const st = missing.length
+    ? { niveau: 'off', texte: 'À connecter' }
+    : (s && s.fonctionnalites && s.fonctionnalites[f.id]) || { niveau: 'ok', texte: 'Prêt' };
+  setPill(f.id, st.niveau, st.texte);
+  card.detail.hidden = !st.detail || Boolean(missing.length);
+  card.detail.textContent = st.detail || '';
+  card.detail.dataset.level = st.niveau;
+}
+
+function renderFeatures(s) {
+  (window.FEATURES || []).forEach((f) => updateFeature(f, s));
+}
+
+/* ===================== navigation ===================== */
+// Une seule page, une vue par section : #twitch, #bot, #spotify, #<id de fonctionnalité>.
+// Le bouton Retour du navigateur ramène à l'accueil.
+
+function route() {
+  const name = decodeURIComponent(location.hash.slice(1));
+  const target = (name && document.getElementById('view-' + name)) || $('#view-home');
+  $$('.view').forEach((view) => { view.hidden = view !== target; });
+  window.scrollTo(0, 0);
+}
+
+window.addEventListener('hashchange', route);
 
 /* ===================== sondage de /status ===================== */
 
@@ -271,4 +352,6 @@ $$('form[data-setup]').forEach((form) => {
   history.replaceState(null, '', '/');
 })();
 
+buildFeatures();
+route();
 startPolling();

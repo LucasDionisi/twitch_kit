@@ -9,17 +9,42 @@ personnel de l'auteur). Même principe : un serveur Node local, lancé et arrêt
 alimente des sources navigateur. Mais l'utilisateur final **ne code pas, n'édite aucun
 fichier et n'installe rien** : c'est la contrainte qui guide tout le reste.
 
-Pour l'instant, le repo n'est qu'un socle, **sans aucune fonctionnalité** :
+Le socle, plus une première fonctionnalité (sondages et prédictions annoncés par le bot) :
 
 - `src/server.js` — serveur HTTP sans dépendance npm : OAuth Twitch pour deux comptes
   (chaîne et bot, via la fabrique `makeAccount()`), OAuth Spotify, `/status`, et les routes
-  `POST /setup/twitch|bot|spotify` qui écrivent `config/credentials.json`.
+  `POST /setup/twitch|bot|spotify` qui écrivent `config/credentials.json`. Les réglages des
+  fonctionnalités vivent dans `config/settings.json` (une section par fonctionnalité,
+  normalisée par son module ; `writeSettings()` → `applySettings()`, surveillé comme les
+  identifiants). `/status` porte `fonctionnalites.<id>` : `{ niveau, texte, detail }`
+  calculé côté serveur, affiché tel quel sur la carte.
 - `src/spotify.js` — OAuth Spotify seul (autorisation, refresh, `ensureToken()` pour les
   futures fonctionnalités). N'importe rien du serveur, `server.js` l'injecte.
-- `overlays/home.html` + `home.js` + `home.css` — page d'accueil servie sur `/` : une carte
-  par compte (état, clés, bouton Autoriser, URL de redirection à copier) et la liste des
-  fonctionnalités. Sonde `/status` toutes les 5 s **seulement quand l'onglet est visible**.
-- `overlays/features.js` — catalogue des fonctionnalités affichées sur l'accueil (vide).
+- `src/eventsub.js` — EventSub par WebSocket (client côté serveur, `WebSocket` natif de
+  Node 22+) avec le token de la chaîne. `on(type, version, handler)` pour s'abonner ;
+  gère welcome/keepalive (watchdog)/reconnect/revocation, dédoublonne par `message_id`,
+  réessaie avec backoff. Un refus 401/403 à l'abonnement l'arrête (il faut réautoriser) :
+  le callback d'autorisation de la chaîne appelle `eventsub.restart()`.
+- `src/chat.js` — `say(texte, { annonce, couleur })` : le bot écrit dans le chat
+  (`/chat/messages`) ou fait une annonce (`/chat/announcements`, bot modérateur) ; une
+  annonce refusée retombe sur un message normal et laisse un avertissement pour l'accueil.
+- `src/polls.js` — sondages et prédictions : modèles de messages à variables `{titre}`…,
+  valeurs par défaut, `normalize()` (bornes), handlers EventSub (`events`), et `test()`
+  (exemple envoyé dans le chat depuis l'accueil, 3 s minimum entre deux). Routes :
+  `GET /settings/polls`, `POST /setup/polls`, `POST /setup/polls/test`.
+- `overlays/home.html` + `home.js` + `home.css` — page d'accueil servie sur `/`, une seule
+  page à vues : l'accueil (`#view-home`) n'est qu'une grille de **tuiles** (une par compte,
+  une par fonctionnalité) avec leur pastille d'état ; chaque tuile ouvre la vue de sa
+  section (`#twitch`, `#bot`, `#spotify`, `#<id>` → `#view-<nom>`, routage par
+  `hashchange`) avec clés, bouton Autoriser, URL à copier, réglages. Les pastilles d'une
+  même section portent `data-state="<nom>"` et sont mises à jour ensemble par `setPill()`.
+  Sonde `/status` toutes les 5 s **seulement quand l'onglet est visible**. Tuiles et vues
+  des fonctionnalités sont construites une fois au chargement puis mises à jour (jamais
+  reconstruites : un formulaire en cours de saisie ne doit pas disparaître).
+- `overlays/home_messages.js` — formulaire « modèles de messages du bot » de la vue d'une
+  fonctionnalité (`reglages: 'messages'` dans `features.js`), construit depuis
+  `GET /settings/<id>`.
+- `overlays/features.js` — catalogue des fonctionnalités affichées sur l'accueil.
 - `obs_twitch_kit.lua` + `start_server_hidden.vbs` — lancement caché depuis OBS. Le `.vbs`
   prend `runtime\node.exe` s'il existe (zip de release), sinon `node` du PATH (dev).
   `start_server_debug.bat` : même chose avec fenêtre.
@@ -58,8 +83,10 @@ Pour l'instant, le repo n'est qu'un socle, **sans aucune fonctionnalité** :
 - **L'accueil est le point d'entrée unique** : chaque fonctionnalité y est listée, et il doit
   rester organisé pour être compris et utilisé sans lire de doc. Regrouper par usage, aller
   du plus important au détail, un seul appel à l'action clair par carte, l'état visible
-  d'un coup d'œil (prêt / à configurer / autorisation à refaire).
-- **Chaque fonctionnalité dit exactement quoi faire dans OBS**, directement sur sa carte.
+  d'un coup d'œil (prêt / à configurer / autorisation à refaire). L'accueil doit rester
+  court, sans défilement : une tuile (titre, une phrase, pastille) par section, tout le
+  détail et les réglages sur la page de la section.
+- **Chaque fonctionnalité dit exactement quoi faire dans OBS**, directement sur sa page.
   Pour un overlay : l'URL à copier (bouton copier), le type de source (Navigateur), la
   **largeur et la hauteur à régler**, et tout réglage OBS utile (ex. « Actualiser le
   navigateur quand la scène devient active », fond transparent). Plus un aperçu via
