@@ -78,10 +78,42 @@ par deux overlays OBS) :
   avec l'aperçu : l'overlay en `?demo=1` dans un iframe, qui reçoit les réglages non
   enregistrés par `postMessage` (`{ twitchKitConfig }`, origine vérifiée) et n'ouvre alors
   pas de flux.
-- `overlays/features.js` — catalogue des fonctionnalités affichées sur l'accueil.
+- `overlays/transition.js` — transition de scène « néon circuit » (Stinger OBS, portée de
+  `transition.html` de `twitch_tools`) : `create(opts)` → moteur avec `renderFrame(ctx, t)`
+  pur (t de 0 à 1, aléatoire à graine) et `cover` (point de transition) ;
+  `exportVideo()` → WebM avec alpha (MediaRecorder image par image, puis remux EBML).
+  Pas une source OBS : OBS ne lit que la vidéo exportée.
+- `overlays/home_transition.js` — page de la tuile transition (`reglages: 'transition'`) :
+  aperçu sur deux fausses scènes (rAF seulement quand la vue est affichée), réglages non
+  enregistrés (vitesse, direction, couleurs, densité, tirage), export, marche à suivre OBS.
+- `src/jeux.js` — sources OBS affichées selon le jeu lancé (id `game_sources`) : règles
+  « nom de source ↔ liste de .exe ». Un `tasklist` caché toutes les 3 s, **seulement s'il
+  y a une règle avec des jeux**. Lua n'ayant pas de HTTP, le canal avec OBS est fait de
+  deux fichiers de `data/`, une ligne par source (pas de JSON côté Lua) :
+  `game_sources_state.txt` (écrit ici, tmp + rename, seulement quand l'état change :
+  `1<TAB>Manette`) et `obs_sources.txt` (écrit par le Lua toutes les 10 s : noms des
+  sources, et signe de vie → « OBS ne répond pas » au-delà de 30 s). Un jeu est un nom
+  (`game.exe`, tout dossier) ou un chemin complet (ce programme-là seulement) : `tasklist`
+  n'ayant pas les chemins, `resolvePaths()` les lit par `Win32_Process` (PowerShell)
+  **seulement** pour les PID dont le nom correspond à un jeu donné par chemin, une fois
+  par PID (cache purgé quand le processus disparaît) ; chemin illisible → repli sur le
+  nom. `choices()` (route
+  `GET /game_sources/choices`, same-origin seulement) liste les programmes à fenêtre via
+  PowerShell (titres en UTF-8), à la demande. `/status` porte en plus `sources`
+  (`{ nom: { visible, jeu } }`) pour les badges de la page.
+- `overlays/home_jeux.js` — page de cette fonctionnalité (`reglages: 'jeux'`) : une carte
+  par règle, datalists des sources OBS et des programmes ouverts ; état en direct via
+  l'événement `twitchkit:status` que `home.js` émet après chaque sondage de `/status`.
+- `overlays/features.js` — catalogue des fonctionnalités affichées sur l'accueil
+  (`dock: false` = pas de ligne dans le dock, pour le dock lui-même et les outils sans état).
 - `obs_twitch_kit.lua` + `start_server_hidden.vbs` — lancement caché depuis OBS. Le `.vbs`
   prend `runtime\node.exe` s'il existe (zip de release), sinon `node` du PATH (dev).
-  `start_server_debug.bat` : même chose avec fenêtre.
+  `start_server_debug.bat` : même chose avec fenêtre. Le Lua applique aussi
+  `data/game_sources_state.txt` (timer d'1 s, n'agit que si le contenu change, plus aux
+  événements `FINISHED_LOADING` / `SCENE_LIST_CHANGED`) : `obs_sceneitem_set_visible` sur
+  chaque élément de scène du bon nom, groupes compris. Une source absente du fichier n'est
+  jamais touchée. Un changement du `.lua` demande de redémarrer OBS (à dire dans le
+  CHANGELOG).
 - `.github/workflows/release.yml` — sur un tag `v*`, assemble `twitch_kit.zip` avec un
   `node.exe` portable officiel (somme SHA256 vérifiée) et écrit `VERSION`. La marche à
   suivre pour publier est dans `RELEASE.md` (pour l'auteur, pas livré dans le zip) : à

@@ -18,7 +18,11 @@
  *                                            // lu sur /settings/<id>, écrit sur /setup/<id> :
  *                                            // 'messages' = modèles de messages du bot,
  *                                            // 'apparence' = thème, couleurs… d'un overlay,
- *                                            // avec son aperçu en direct (url + '?demo=1')
+ *                                            // avec son aperçu en direct (url + '?demo=1'),
+ *                                            // 'transition' = créateur de la transition de scène,
+ *                                            // 'jeux' = sources OBS affichées selon le jeu lancé
+ *     dock: false                            // pas de ligne dans le dock OBS (facultatif) :
+ *                                            // outil sans état à surveiller pendant le stream
  *   }
  *
  * Un overlay a toujours un ?demo=1 : c'est lui que sa page affiche en aperçu.
@@ -78,6 +82,31 @@ window.FEATURES = [
          '« Twitch Kit » comme nom, colle l\'adresse ci-dessus comme URL, puis clique sur ' +
          'Appliquer. Le dock apparaît : fais-le glisser où tu veux dans la fenêtre d\'OBS.',
     groupe: 'obs',
-    comptes: []
+    comptes: [],
+    dock: false
+  },
+  {
+    id: 'transition',
+    nom: 'Transition de scène',
+    description: 'Une transition néon aux couleurs du stream, en vidéo pour OBS.',
+    url: null,
+    obs: 'Ce n\'est pas une source : règle la transition ci-dessous, exporte la vidéo, puis ' +
+         'ajoute-la dans OBS comme transition Stinger en suivant la marche à suivre en bas de page.',
+    groupe: 'obs',
+    comptes: [],
+    reglages: 'transition',
+    dock: false
+  },
+  {
+    id: 'game_sources',
+    nom: 'Sources selon le jeu',
+    description: 'Une source de tes scènes (ta manette…) qui ne s\'affiche que pendant les ' +
+                 'jeux choisis.',
+    url: null,
+    obs: 'Rien à ajouter dans OBS : garde ta source dans tes scènes, Twitch Kit l\'affiche ' +
+         'et la masque tout seul. OBS doit être ouvert, avec le script Twitch Kit chargé.',
+    groupe: 'obs',
+    comptes: [],
+    reglages: 'jeux'
   }
 ];

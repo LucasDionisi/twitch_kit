@@ -105,7 +105,9 @@ function openKeysOnce(name, open) {
 // constructeurs des formulaires de réglages, par valeur de « reglages » dans features.js
 const SETTINGS_BUILDERS = {
   messages: (root, f) => window.buildMessageSettings(root, f.id),
-  apparence: (root, f) => window.buildOverlaySettings(root, f)
+  apparence: (root, f) => window.buildOverlaySettings(root, f),
+  transition: (root, f) => window.buildTransitionSettings(root, f),
+  jeux: (root, f) => window.buildGameSourceSettings(root, f)
 };
 
 function el(tag, className, text) {
@@ -268,6 +270,8 @@ async function refresh() {
   renderBot(status);
   renderSpotify(status);
   renderFeatures(status);
+  // pour les réglages qui affichent un état en direct (sources selon le jeu)
+  document.dispatchEvent(new CustomEvent('twitchkit:status', { detail: status }));
 }
 
 function startPolling() {
