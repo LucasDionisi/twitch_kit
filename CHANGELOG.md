@@ -6,6 +6,18 @@ téléchargement.
 
 ## À venir
 
+### Nouveautés
+
+- Nouvelle **transition de scène** aux couleurs du stream : un panneau néon traverse
+  l'écran pendant que tu changes de scène. Tu choisis la vitesse, la direction et les
+  couleurs sur sa page, puis tu l'exportes en vidéo pour OBS.
+
+### À faire après la mise à jour
+
+Rien d'obligatoire. Pour utiliser la transition : sur la page d'accueil, ouvre la vignette
+**Transition de scène**, clique sur **Exporter la vidéo pour OBS**, puis ajoute-la dans OBS
+comme transition **Stinger** en suivant la marche à suivre en bas de sa page.
+
 ## v1.1.0 — 2026-09-26
 
 ### Nouveautés

@@ -48,8 +48,8 @@ function build() {
   const accounts = section('Connexions');
   ACCOUNTS.forEach((a) => addRow(accounts, a.id, a.nom));
 
-  // le dock ne s'affiche pas lui-même ; un groupe vide n'a pas de section
-  const list = (window.FEATURES || []).filter((f) => f.id !== 'dock');
+  // ni le dock lui-même ni les outils sans état (dock: false) ; un groupe vide n'a pas de section
+  const list = (window.FEATURES || []).filter((f) => f.dock !== false);
   const groups = window.FEATURE_GROUPS || [];
   const known = groups.map((g) => g.id);
   const last = known[known.length - 1];
