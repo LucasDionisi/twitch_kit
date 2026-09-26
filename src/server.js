@@ -20,6 +20,8 @@ const spotify = require('./spotify.js');
 const eventsub = require('./eventsub.js');
 const chat = require('./chat.js');
 const polls = require('./polls.js');
+const votes = require('./votes.js');
+const live = require('./live.js');
 
 const ROOT = path.join(__dirname, '..');       // le code vit dans src/
 const WEB_ROOT = path.join(ROOT, 'overlays');  // seul dossier exposé en HTTP
@@ -363,12 +365,35 @@ async function writeCredentials(next) {
 }
 
 /* ===================== réglages des fonctionnalités ===================== */
-// Une section par fonctionnalité, chacune validée et complétée par défaut par son module :
-// un fichier absent, ancien ou abîmé donne toujours des réglages utilisables.
+// Une section par fonctionnalité (clé = id de overlays/features.js), chacune validée et
+// complétée par défaut par son module : un fichier absent, ancien ou abîmé donne
+// toujours des réglages utilisables. Chaque entrée sert aussi les routes
+// GET /settings/<id> et POST /setup/<id> (et /setup/<id>/test si elle a test()).
+
+const FEATURE_SETTINGS = {
+  polls: {
+    nom: 'sondages et prédictions dans le chat',
+    normalize: (raw) => polls.normalize(raw),
+    describe: () => polls.describe(),
+    test: (body) => polls.test(body)
+  },
+  poll_overlay: {
+    nom: 'overlay sondage',
+    normalize: (raw) => votes.normalizeStyle('poll', raw),
+    describe: () => votes.describeStyle('poll')
+  },
+  prediction_overlay: {
+    nom: 'overlay prédiction',
+    normalize: (raw) => votes.normalizeStyle('prediction', raw),
+    describe: () => votes.describeStyle('prediction')
+  }
+};
 
 function normalizeSettings(raw) {
   const src = raw && typeof raw === 'object' ? raw : {};
-  return { polls: polls.normalize(src.polls) };
+  const out = {};
+  Object.keys(FEATURE_SETTINGS).forEach((id) => { out[id] = FEATURE_SETTINGS[id].normalize(src[id]); });
+  return out;
 }
 
 function loadSettings(previous) {
@@ -386,6 +411,8 @@ let settings = loadSettings(null);
 function applySettings(next) {
   settings = next;
   polls.setSettings(next.polls);
+  // les overlays ouverts changent d'apparence tout de suite, sans être rafraîchis
+  votes.KINDS.forEach((kind) => live.broadcast('/' + kind + '/stream', 'config', next[kind + '_overlay']));
 }
 
 async function writeSettings(next) {
@@ -584,28 +611,44 @@ async function handleSetup(req, res, pathname) {
 
 const SETUP_ROUTES = new Set(['/setup/twitch', '/setup/bot', '/setup/spotify']);
 
-/* ---------- réglages des sondages et prédictions ---------- */
+/* ---------- réglages des fonctionnalités ---------- */
 
-// sept modèles de 450 caractères, emojis et accents comptant plusieurs octets
-const POLLS_BODY_MAX = 32 * 1024;
+// le plus gros : sept modèles de 450 caractères, emojis et accents comptant plusieurs octets
+const FEATURE_BODY_MAX = 32 * 1024;
 
-async function handlePollsSetup(req, res, pathname) {
-  const body = await readSetupBody(req, res, POLLS_BODY_MAX);
+// /settings/<id>, /setup/<id>, /setup/<id>/test → { id, test } ou null
+function featureRoute(pathname) {
+  const m = /^\/(settings|setup)\/([a-z_]+)(\/test)?$/.exec(pathname);
+  if (!m || !Object.prototype.hasOwnProperty.call(FEATURE_SETTINGS, m[2])) return null;
+  if (m[1] === 'settings' && m[3]) return null;
+  return { id: m[2], lecture: m[1] === 'settings', test: Boolean(m[3]) };
+}
+
+async function handleFeatureSettings(req, res, route) {
+  const feature = FEATURE_SETTINGS[route.id];
+
+  // réglages actuels + de quoi construire le formulaire (rien de secret)
+  if (route.lecture) {
+    return sendJson(res, 200, { reglages: settings[route.id], modele: feature.describe() });
+  }
+
+  const body = await readSetupBody(req, res, FEATURE_BODY_MAX);
   if (!body) return;
 
-  if (pathname === '/setup/polls/test') {
+  if (route.test) {
+    if (!feature.test) return sendJson(res, 404, { erreur: 'rien à tester ici' });
     try {
-      return sendJson(res, 200, Object.assign({ ok: true }, await polls.test(body)));
+      return sendJson(res, 200, Object.assign({ ok: true }, await feature.test(body)));
     } catch (err) {
       return sendJson(res, 400, { erreur: err.message });
     }
   }
 
-  const next = Object.assign({}, settings, { polls: polls.normalize(body) });
+  const next = Object.assign({}, settings, { [route.id]: feature.normalize(body) });
   try {
     await writeSettings(next);
-    console.log('Réglages enregistrés (sondages et prédictions).');
-    return sendJson(res, 200, { ok: true, reglages: next.polls });
+    console.log('Réglages enregistrés (' + feature.nom + ').');
+    return sendJson(res, 200, { ok: true, reglages: next[route.id] });
   } catch (err) {
     console.warn('Écriture de settings.json impossible : ' + err.message);
     return sendJson(res, 500, { erreur: 'enregistrement impossible : ' + err.message });
@@ -628,6 +671,31 @@ function pollsState() {
   if (ch.erreur) return { niveau: 'warn', texte: 'Problème', detail: 'Dernier message non envoyé : ' + ch.erreur };
   if (ch.avertissement) return { niveau: 'warn', texte: 'Actif', detail: ch.avertissement };
   return { niveau: 'ok', texte: 'Actif' };
+}
+
+const PHASE_TEXTE = {
+  active: 'En cours',
+  locked: 'Mises fermées',
+  ended: 'Résultat à l\'écran',
+  canceled: 'Annulation à l\'écran'
+};
+
+// Overlay sondage ou prédiction : prêt quand une source OBS écoute son flux.
+function overlayState(kind) {
+  if (broadcaster.missingScopes.length || broadcaster.lastError) {
+    return { niveau: 'bad', texte: 'Autorisation à refaire',
+             detail: 'Clique sur « Autoriser ma chaîne » en haut de la page : Twitch doit te ' +
+                     'demander l\'accès à tes sondages et prédictions.' };
+  }
+  const ev = eventsub.status();
+  if (ev.erreur) return { niveau: 'warn', texte: 'Problème', detail: ev.erreur };
+  if (!ev.connecte) return { niveau: 'warn', texte: 'Connexion…' };
+  if (!live.count('/' + kind + '/stream')) {
+    return { niveau: 'off', texte: 'Pas encore dans OBS',
+             detail: 'Ajoute la source dans OBS avec l\'adresse ci-dessous : l\'état passera au vert.' };
+  }
+  const ph = votes.phase(kind);
+  return { niveau: 'ok', texte: ph ? PHASE_TEXTE[ph] || 'Dans OBS' : 'Dans OBS' };
 }
 
 /* ---------- état pour la page d'accueil ---------- */
@@ -665,7 +733,9 @@ function statusPayload() {
     },
     // état de chaque fonctionnalité, par id de overlays/features.js
     fonctionnalites: {
-      polls: pollsState()
+      polls: pollsState(),
+      poll_overlay: overlayState('poll'),
+      prediction_overlay: overlayState('prediction')
     }
   };
 }
@@ -688,13 +758,8 @@ const server = http.createServer(async (req, res) => {
 
     if (SETUP_ROUTES.has(pathname)) return await handleSetup(req, res, pathname);
 
-    // réglages actuels + de quoi construire le formulaire (rien de secret)
-    if (pathname === '/settings/polls') {
-      return sendJson(res, 200, { reglages: settings.polls, modele: polls.describe() });
-    }
-    if (pathname === '/setup/polls' || pathname === '/setup/polls/test') {
-      return await handlePollsSetup(req, res, pathname);
-    }
+    const feature = featureRoute(pathname);
+    if (feature) return await handleFeatureSettings(req, res, feature);
 
     if (pathname === '/auth' || pathname === '/auth/bot') {
       if (!twitchConfigured()) {
@@ -731,7 +796,10 @@ const server = http.createServer(async (req, res) => {
         await account.exchangeCode(url.searchParams.get('code'));
         await checkScopes(account);
         // nouveaux droits, voire autre chaîne : on se réabonne aux événements
-        if (account === broadcaster) eventsub.restart();
+        if (account === broadcaster) {
+          eventsub.restart();
+          votes.seed(broadcaster);
+        }
         return redirect(res, '/?connecte=' + (account === broadcaster ? 'twitch' : 'bot'));
       } catch (err) {
         console.error('Échange du code impossible :', err.message);
@@ -789,7 +857,11 @@ async function start() {
   await checkScopes(broadcaster);
   // sans les droits, Twitch refuserait les abonnements : la page d'accueil demande déjà
   // de réautoriser, et le callback d'autorisation relancera EventSub
-  if (!broadcaster.missingScopes.length) eventsub.start();
+  if (!broadcaster.missingScopes.length) {
+    eventsub.start();
+    // un sondage ou une prédiction déjà lancés avant le démarrage du serveur
+    votes.seed(broadcaster);
+  }
 }
 
 /* ===================== fichier PID ===================== */
@@ -841,6 +913,23 @@ chat.init({ bot: botAccount, channel: broadcaster });
 polls.init({ send: chat.say });
 eventsub.init({ account: broadcaster });
 Object.keys(polls.events).forEach((type) => eventsub.on(type, '1', polls.events[type]));
+
+// overlays sondage et prédiction : un flux chacun. À la (re)connexion d'une page, ses
+// réglages d'abord, pour qu'elle soit prête avant l'état en cours.
+live.init({ port: PORT });
+votes.init({
+  broadcast: (kind, payload) => live.broadcast('/' + kind + '/stream', kind, payload),
+  holdMs: (kind) => settings[kind + '_overlay'].resultat * 1000
+});
+votes.KINDS.forEach((kind) => {
+  live.route('/' + kind + '/stream', (send) => {
+    send('config', settings[kind + '_overlay']);
+    const current = votes.payload(kind);
+    if (current) send(kind, current);
+  });
+});
+Object.keys(votes.events).forEach((type) => eventsub.on(type, '1', votes.events[type]));
+server.on('upgrade', live.handleUpgrade);
 watchCredentials();
 
 server.listen(PORT, '127.0.0.1', async () => {

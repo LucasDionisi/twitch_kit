@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Prédiction</title>
+<!-- Overlay prédiction, source Navigateur d'OBS : invisible au repos, apparaît au lancement
+     d'une prédiction, suit les mises en direct, reste pendant « mises fermées », montre le
+     résultat (ou l'annulation) puis se retire. Deux issues : face à face ; plus : liste.
+     Aperçu sans live : prediction.html?demo=1 (fausses prédictions en boucle).
+     Rendu dans votes.js, styles et thèmes dans votes.css. -->
+<link rel="stylesheet" href="votes.css">
+</head>
+<body class="theme-circuit kind-prediction">
+  <div id="stage">
+    <div class="ov" id="ov" hidden>
+      <div class="panel">
+        <div class="head">
+          <span class="kind" id="kind"></span>
+          <span class="timer" id="timer"><span class="node"></span><span id="time"></span></span>
+        </div>
+        <div class="q" id="title"></div>
+        <div id="rows"></div>
+        <div id="duel" hidden>
+          <div class="vs">
+            <div class="side a"><span class="name"><span class="name-text"></span><span class="win-tag">GAGNANT</span></span><span class="sub"></span></div>
+            <div class="vsmid">VS</div>
+            <div class="side b"><span class="name"><span class="name-text"></span><span class="win-tag">GAGNANT</span></span><span class="sub"></span></div>
+          </div>
+          <div class="tug"><div class="a"></div><div class="b"></div><span class="meet"></span></div>
+          <div class="stats"><span class="a"></span><span class="b"></span></div>
+        </div>
+        <div class="foot"><span id="foot-left"></span><span id="foot-right"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="live.js"></script>
+  <script src="votes.js"></script>
+  <script>VoteOverlay.start('prediction');</script>
+</body>
+</html>

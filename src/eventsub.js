@@ -10,7 +10,7 @@
  *  - session_reconnect : Twitch migre la session ; on ouvre l'URL fournie, les abonnements
  *                        suivent, et l'ancienne connexion n'est fermée qu'à l'accueil de
  *                        la nouvelle (ses notifications restent valables d'ici là)
- *  - notification      : l'événement, transmis au handler de son type
+ *  - notification      : l'événement, transmis aux handlers de son type
  *
  * Ce module n'importe rien du serveur : server.js lui passe le compte de la chaîne.
  * WebSocket est natif depuis Node 22 (le zip embarque Node 24).
@@ -25,7 +25,7 @@ const SEEN_MAX = 100;                 // Twitch peut livrer deux fois le même �
 
 const state = {
   account: null,        // compte de la chaîne : helix() et tokens.user_id
-  subs: new Map(),      // type → { version, handler }
+  subs: new Map(),      // type → { version, handlers: [] }
   ws: null,             // connexion courante
   stopped: true,
   connected: false,     // session ouverte et abonnements créés
@@ -41,8 +41,10 @@ function init(options) {
   state.account = options.account;
 }
 
+// plusieurs fonctionnalités peuvent écouter le même type : un seul abonnement Twitch
 function on(type, version, handler) {
-  state.subs.set(type, { version: version, handler: handler });
+  if (!state.subs.has(type)) state.subs.set(type, { version: version, handlers: [] });
+  state.subs.get(type).handlers.push(handler);
 }
 
 function status() {
@@ -193,9 +195,12 @@ function dispatch(meta, event) {
 
   const sub = state.subs.get(meta.subscription_type);
   if (!sub) return;
-  Promise.resolve()
-    .then(() => sub.handler(event))
-    .catch((err) => console.warn('EventSub : ' + meta.subscription_type + ' : ' + err.message));
+  // chaque fonctionnalité isolée : l'erreur de l'une n'empêche pas les autres
+  sub.handlers.forEach((handler) => {
+    Promise.resolve()
+      .then(() => handler(event))
+      .catch((err) => console.warn('EventSub : ' + meta.subscription_type + ' : ' + err.message));
+  });
 }
 
 async function subscribeAll(socket, sessionId) {

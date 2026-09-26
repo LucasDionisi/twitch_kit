@@ -171,6 +171,30 @@ Pour en ajouter un dans OBS :
 
 ---
 
+## Overlays sondage et prédiction
+
+Deux outils séparés, **Overlay sondage** et **Overlay prédiction**, à ajouter chacun dans
+OBS comme expliqué juste au-dessus (taille **660 × 720**). Ils sont invisibles au repos :
+ils apparaissent quand tu lances un sondage ou une prédiction, suivent les votes et les
+mises en direct, affichent le résultat, puis disparaissent tout seuls.
+
+Place la source où tu veux sur ta scène : l'overlay s'affiche dans son coin en haut à
+gauche.
+
+Sur la page de chaque overlay, l'**aperçu** montre de faux sondages ou de fausses
+prédictions en boucle, avec tes réglages :
+
+- **Thème** : **Néon circuit** ou **Néon CRT**. Chaque thème garde ses couleurs.
+- **Couleurs** : clique sur une pastille pour la changer. **Couleurs d'origine** remet
+  celles du thème.
+- **Taille** et **Durée du résultat** (combien de secondes le résultat reste affiché).
+- **Éléments affichés** : chrono, nombre de votes ou de points, pied.
+- **Textes** : les petits messages du bas. Vide = texte d'origine.
+
+Clique sur **Enregistrer** : l'overlay change tout de suite dans OBS, sans rien recharger.
+
+---
+
 ## Sondages et prédictions dans le chat
 
 Quand tu lances un sondage ou une prédiction sur Twitch, le bot l'annonce dans ton chat,
