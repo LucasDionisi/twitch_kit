@@ -93,7 +93,12 @@ par deux overlays OBS) :
   pas sur l'accueil) avec son `groupe` (section de l'accueil : `overlays`, `bot`… ; un
   nouveau groupe s'ajoute à `FEATURE_GROUPS`), ses scopes ajoutés à `SCOPES` / `BOT_SCOPES` (`checkScopes()` signalera
   alors « Autorisation à refaire » aux comptes déjà autorisés), une section du README si
-  l'utilisateur a quelque chose à faire dans OBS, et une mise à jour de ce fichier.
+  l'utilisateur a quelque chose à faire dans OBS, une ligne sous `## À venir` dans
+  `CHANGELOG.md`, et une mise à jour de ce fichier.
+- **`CHANGELOG.md` est lu par le streamer** : c'est la description de chaque release (le
+  workflow prend la section `## vX.Y.Z` du tag et s'arrête si elle manque). Même règle que
+  le README : langage simple, pas de code, et toujours une rubrique « À faire après la
+  mise à jour » quand il y a quelque chose à refaire (réautoriser, ajouter une source…).
 - Port par défaut **8787** (pas 8777) pour cohabiter avec `twitch_tools` sur le PC de
   l'auteur. Il est aussi en dur dans `obs_twitch_kit.lua` (`HOME_URL`) et dans le README.
 - Le zip ne contient jamais `config/` ni `data/` : une mise à jour extraite par-dessus garde

@@ -123,7 +123,10 @@ git push
 git branch -d feature/fix-crash-spotify
 ```
 
-Ensuite, publie le correctif (étapes 3 à 6 ci-dessous, avec un numéro de correctif).
+Ensuite, publie le correctif : choisis un numéro de correctif (étape 2 ci-dessous), écris
+sa section dans `CHANGELOG.md` directement sur `main` (étape 3), commite, pousse, refais
+`git switch develop` puis `git merge main` pour que `develop` ait les notes, et termine par
+les étapes 5 et 6.
 
 ## Publier une version
 
@@ -136,7 +139,45 @@ Sur `develop`, avec tout ce qui doit partir :
    marchent.
 3. Ferme la fenêtre du serveur.
 
-### 2. Fusionner `develop` dans `main`
+### 2. Choisir le numéro de version
+
+Format `vMAJEUR.MINEUR.CORRECTIF`, toujours plus grand que le précédent :
+
+| Ce que tu livres | Exemple |
+| --- | --- |
+| une correction de bug | `v0.1.0` → `v0.1.1` |
+| une nouvelle fonctionnalité | `v0.1.1` → `v0.2.0` |
+| un gros changement (le streamer doit refaire quelque chose) | `v0.2.0` → `v1.0.0` |
+
+Dernier tag publié : `git tag --sort=-v:refname | head -1`.
+
+### 3. Écrire les notes de version
+
+La description de la release sur GitHub est la section de la version dans
+`CHANGELOG.md`. **Sans elle, le workflow s'arrête** (croix rouge, rien n'est publié).
+
+Pendant le développement, chaque fonctionnalité ajoute ses lignes sous `## À venir`.
+Au moment de publier, sur `develop` :
+
+1. Renomme `## À venir` en `## v0.2.0 — AAAA-MM-JJ` (le numéro de l'étape 2, la date du
+   jour), et remets un `## À venir` vide au-dessus. Le numéro doit être écrit exactement
+   comme le tag, `v` compris.
+2. Relis en te mettant à la place du streamer : que du langage simple, pas de code. Trois
+   rubriques au plus, dans cet ordre : `### Nouveautés`, `### Corrections`,
+   `### À faire après la mise à jour` (réautoriser, ajouter une source dans OBS…).
+3. Commite et pousse :
+
+   ```bash
+   git add CHANGELOG.md
+   git commit -m "Notes de version 0.2.0"
+   git push
+   ```
+
+Le workflow y ajoute tout seul le pied commun « Installer ou mettre à jour »
+(`.github/release_footer.md`) et le lien vers tous les changements depuis la version
+précédente.
+
+### 4. Fusionner `develop` dans `main`
 
 ```bash
 git switch develop
@@ -149,21 +190,9 @@ git push
 git switch develop         # pour ne pas continuer à travailler sur main par erreur
 ```
 
-### 3. Choisir le numéro de version
+### 5. Créer et pousser le tag
 
-Format `vMAJEUR.MINEUR.CORRECTIF`, toujours plus grand que le précédent :
-
-| Ce que tu livres | Exemple |
-| --- | --- |
-| une correction de bug | `v0.1.0` → `v0.1.1` |
-| une nouvelle fonctionnalité | `v0.1.1` → `v0.2.0` |
-| un gros changement (le streamer doit refaire quelque chose) | `v0.2.0` → `v1.0.0` |
-
-Dernier tag publié : `git tag --sort=-v:refname | head -1`.
-
-### 4. Créer et pousser le tag
-
-Le tag se pose **sur `main`**, après le `git push` de l'étape 2 :
+Le tag se pose **sur `main`**, après le `git push` de l'étape 4 :
 
 ```bash
 git switch main
@@ -172,15 +201,17 @@ git push origin v0.2.0
 git switch develop
 ```
 
-### 5. Vérifier sur GitHub
+### 6. Vérifier sur GitHub
 
 1. Onglet **Actions** : le run **Release** tourne (environ 1 min) et doit finir en vert ✅.
+   S'il échoue tout de suite à l'étape **Préparer les notes de version**, la section du
+   tag manque dans `CHANGELOG.md` (voir « Si le run Release échoue », point 3).
 2. Onglet **Releases** (colonne de droite de la page du repo) : la version apparaît avec
-   `twitch_kit.zip`.
-3. Tu peux éditer la release (icône crayon) pour réécrire les notes en langage simple :
-   c'est ce que lira le streamer.
+   `twitch_kit.zip` et les notes du CHANGELOG. Une faute à corriger après coup : édite la
+   release (icône crayon), et corrige aussi `CHANGELOG.md` pour que les deux restent
+   identiques.
 
-### 6. Prévenir le streamer
+### 7. Prévenir le streamer
 
 Envoie-lui le lien de la release. Pour mettre à jour, il suit la section « Mettre à jour »
 du README : télécharger le zip, **Débloquer**, fermer OBS, extraire par-dessus. Ses clés et
@@ -230,6 +261,7 @@ devra recliquer sur **Autoriser** : la page d'accueil affichera « Autorisation 
   du workflow.
 - Node est pris dans la dernière version de la branche `NODE_MAJOR` (en tête du workflow) :
   à monter quand une nouvelle LTS sort.
-- Ce fichier, `CLAUDE.md` et `.github/` restent sur GitHub et ne vont pas dans le zip.
+- Ce fichier, `CLAUDE.md`, `CHANGELOG.md` et `.github/` restent sur GitHub et ne vont pas
+  dans le zip (le streamer lit les notes sur la page de la release).
 - Le workflow Release ne se déclenche que sur un tag : pousser `develop` ou une branche de
   fonctionnalité ne publie rien.
