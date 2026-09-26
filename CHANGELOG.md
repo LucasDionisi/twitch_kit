@@ -6,9 +6,19 @@ téléchargement.
 
 ## À venir
 
-- Nouveau **dock OBS** : un petit panneau dans OBS qui montre l'état de ta chaîne, du bot
-  et de chaque outil pendant le stream. À ajouter une fois depuis la vignette **Dock OBS**
-  de la page d'accueil (menu **Docks** → **Docks personnalisés du navigateur** dans OBS).
+## v1.1.0 — 2026-09-26
+
+### Nouveautés
+
+- Nouveau **dock OBS** : un petit panneau dans la fenêtre d'OBS qui montre l'état de ta
+  chaîne, du bot et de chaque outil pendant le stream, avec les mêmes pastilles que la
+  page d'accueil. Clique sur une ligne pour ouvrir sa page.
+
+### À faire après la mise à jour
+
+Rien d'obligatoire. Pour profiter du dock, ajoute-le une fois : sur la page d'accueil,
+ouvre la vignette **Dock OBS** et copie l'adresse, puis dans OBS, menu **Docks** →
+**Docks personnalisés du navigateur**, colle-la dans **URL** et clique sur **Appliquer**.
 
 ## v1.0.1 — 2026-09-26
 
