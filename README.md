@@ -214,6 +214,8 @@ manque.
 - **Ma source ne s'affiche pas en jeu** — Le nom doit être exactement celui de la source
   dans OBS, majuscules comprises. Si le jeu passe par un lanceur, ajoute aussi le
   programme du jeu lui-même, choisi dans la liste pendant que tu joues.
+- **L'export de la transition ne marche pas** — Il faut **Chrome** ou **Edge** (pas
+  Firefox ni Safari) : copie l'adresse de la page et ouvre-la dans l'un des deux.
 - **L'antivirus bloque un fichier** — Autorise le dossier `Documents\twitch_kit`. Rien
   n'est envoyé ailleurs qu'à Twitch et Spotify.
 - **Toujours bloqué ?** — OBS → **Outils** → **Scripts** → **obs_twitch_kit.lua** →

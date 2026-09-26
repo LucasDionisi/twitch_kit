@@ -6,6 +6,12 @@ téléchargement.
 
 ## À venir
 
+### Corrections
+
+- **Transition de scène** : dans Firefox, l'export échouait avec un message
+  incompréhensible. La page dit maintenant tout de suite d'ouvrir la page dans Chrome ou
+  Edge, les seuls navigateurs qui savent fabriquer la vidéo avec sa transparence.
+
 ## v1.2.0 — 2026-09-26
 
 ### Nouveautés

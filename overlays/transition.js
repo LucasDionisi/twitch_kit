@@ -621,11 +621,21 @@
     return ['video/webm;codecs=vp9', 'video/webm;codecs=vp8'].find(m => MediaRecorder.isTypeSupported(m)) || null;
   }
 
+  // L'export a besoin de pousser les images une à une (requestFrame sur la piste du canvas) :
+  // Chrome, Edge, Brave, Opera. Firefox n'a requestFrame que sur le flux, et rien ne garantit
+  // qu'il garde l'alpha : une vidéo à fond noir serait pire qu'un refus clair. Safari non plus.
+  function canExport() {
+    return Boolean(pickMime()) && typeof CanvasCaptureMediaStreamTrack !== 'undefined' &&
+           typeof CanvasCaptureMediaStreamTrack.prototype.requestFrame === 'function';
+  }
+
+  const EXPORT_BROWSERS = 'ce navigateur ne sait pas fabriquer la vidéo. Ouvre cette page dans Chrome ou Edge.';
+
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   async function exportVideo(engine, { durationMs, fps, onProgress }) {
+    if (!canExport()) throw new Error(EXPORT_BROWSERS);
     const mime = pickMime();
-    if (!mime) throw new Error('ce navigateur ne sait pas enregistrer la vidéo. Ouvre cette page dans Chrome ou Edge à jour.');
 
     const canvas = document.createElement('canvas');
     canvas.width = engine.W; canvas.height = engine.H;
@@ -634,6 +644,8 @@
 
     const stream = canvas.captureStream(0);       // 0 = une image seulement quand on la demande
     const track = stream.getVideoTracks()[0];
+    // une extension (anti-pistage…) peut remplacer captureStream par une copie sans requestFrame
+    if (!track || typeof track.requestFrame !== 'function') throw new Error(EXPORT_BROWSERS);
     const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 16e6 });
     const parts = [];
     recorder.ondataavailable = (e) => { if (e.data.size) parts.push(e.data); };
@@ -663,5 +675,5 @@
     return remuxWebm(raw, fps, n + 1);
   }
 
-  window.TwitchKitTransition = { create, exportVideo };
+  window.TwitchKitTransition = { create, exportVideo, canExport };
 })();

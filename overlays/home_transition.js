@@ -265,6 +265,19 @@ window.buildTransitionSettings = function (root, f) {
   root.appendChild(node('p', 'muted small',
     'L\'export prend quelques secondes : garde cet onglet au premier plan jusqu\'à la fin.'));
 
+  // Firefox, Safari : l'aperçu marche, mais pas l'export. On le dit avant le clic, avec
+  // l'adresse à ouvrir ailleurs.
+  if (!T.canExport()) {
+    exportBtn.disabled = true;
+    fps.disabled = true;
+    const addr = node('code', null, location.origin + '/#transition');
+    const note = node('p', 'tr-warn');
+    note.append('Ton navigateur ne sait pas fabriquer la vidéo (la transparence serait perdue). ' +
+                'Ouvre cette page dans ', node('b', null, 'Chrome'), ' ou ', node('b', null, 'Edge'),
+                ' pour l\'exporter : ', addr);
+    root.appendChild(note);
+  }
+
   exportBtn.addEventListener('click', async () => {
     exportBtn.disabled = true;
     fps.disabled = true;
@@ -290,8 +303,8 @@ window.buildTransitionSettings = function (root, f) {
       progress.dataset.level = 'bad';
       progress.textContent = 'Échec de l\'export : ' + (err.message || err);
     } finally {
-      exportBtn.disabled = false;
-      fps.disabled = false;
+      exportBtn.disabled = !T.canExport();
+      fps.disabled = exportBtn.disabled;
       if (wasPlaying) setPlaying(true);
     }
   });

@@ -82,6 +82,9 @@ par deux overlays OBS) :
   `transition.html` de `twitch_tools`) : `create(opts)` → moteur avec `renderFrame(ctx, t)`
   pur (t de 0 à 1, aléatoire à graine) et `cover` (point de transition) ;
   `exportVideo()` → WebM avec alpha (MediaRecorder image par image, puis remux EBML).
+  Chromium seulement : `canExport()` exige `CanvasCaptureMediaStreamTrack.requestFrame`
+  (Firefox ne l'a que sur le flux, alpha non garanti) ; sinon la page désactive l'export
+  et dit d'ouvrir Chrome ou Edge.
   Pas une source OBS : OBS ne lit que la vidéo exportée.
 - `overlays/home_transition.js` — page de la tuile transition (`reglages: 'transition'`) :
   aperçu sur deux fausses scènes (rAF seulement quand la vue est affichée), réglages non
