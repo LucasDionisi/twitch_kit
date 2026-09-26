@@ -6,6 +6,8 @@ téléchargement.
 
 ## À venir
 
+## v1.2.0 — 2026-09-26
+
 ### Nouveautés
 
 - Nouvelle **transition de scène** aux couleurs du stream : un panneau néon traverse
