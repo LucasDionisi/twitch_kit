@@ -651,6 +651,67 @@ button:disabled { opacity: 0.5; cursor: default; }
 .tr-guide ol { margin: 0; padding-left: 20px; line-height: 1.65; }
 .tr-guide b { font-weight: 600; }
 
+/* ===================== sources selon le jeu ===================== */
+
+.gs .gs-intro { margin: 0; }
+.gs-list { display: grid; gap: 12px; }
+
+.gs-rule {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.gs-head, .gs-add { display: flex; align-items: center; gap: 10px; }
+.gs-head input.gs-source { font-weight: 500; }
+
+.gs-badge {
+  flex: none;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: var(--code);
+  color: var(--muted);
+}
+.gs-badge[data-on="1"] { background: rgba(47, 163, 107, 0.14); color: var(--ok); }
+
+.gs-games { display: flex; flex-wrap: wrap; gap: 6px; }
+.gs-games:empty::before {
+  content: 'Aucun jeu pour l\'instant : la source ne sera pas touchée.';
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.gs-game {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: 12px/1.6 Consolas, 'Cascadia Mono', monospace;
+  animation: view-in 0.15s ease-out;
+}
+
+button.gs-x {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font: 14px/1 system-ui, sans-serif;
+  opacity: 0.6;
+}
+button.gs-x:hover { opacity: 1; background: rgba(123, 91, 214, 0.15); filter: none; }
+
+.gs-add input { padding: 6px 10px; font-size: 13px; }
+.gs .gs-add-rule { justify-self: start; }
+
 /* ===================== pied, toast ===================== */
 
 .foot {

@@ -7,6 +7,8 @@
 
   Le serveur démarre avec OBS, sans aucune fenêtre visible, et s'arrête
   quand OBS se ferme. Ses messages vont dans data/server.log.
+  Il affiche ou masque aussi les sources réglées sur la page d'accueil selon
+  le jeu lancé (fichiers d'échange dans data/, voir plus bas).
   Rien n'est installé au démarrage de Windows.
 ]]
 
@@ -112,6 +114,105 @@ local function stop_server()
   log("Serveur arrêté (PID " .. pid .. ").")
 end
 
+--[[ ==================== sources affichées selon le jeu ==================== ]]
+
+-- Le serveur repère les jeux lancés et écrit, une ligne par source, « 1<TAB>Manette »
+-- (affichée) ou « 0<TAB>Manette » (masquée). Ici on applique ce fichier aux éléments de
+-- scène qui portent ce nom, dans toutes les scènes, groupes compris. Une source absente
+-- du fichier n'est jamais touchée. Dans l'autre sens, on écrit la liste des sources
+-- d'OBS toutes les 10 s : liste déroulante de l'accueil, et signe que ce script tourne.
+local STATE_FILE   = ROOT .. "data/game_sources_state.txt"
+local SOURCES_FILE = ROOT .. "data/obs_sources.txt"
+local SOURCES_EVERY = 10   -- en secondes (tick d'une seconde)
+
+local last_state = nil     -- contenu du fichier d'état au dernier passage
+local ticks = 0
+
+local function read_file(p)
+  local f = io.open(p, "rb")
+  if not f then return nil end
+  local content = f:read("*a")
+  f:close()
+  return content
+end
+
+-- « 1\tManette\n0\tWebcam\n » -> { Manette = true, Webcam = false }
+local function parse_state(content)
+  local wanted, any = {}, false
+  for line in (content or ""):gmatch("[^\r\n]+") do
+    local flag, name = line:match("^([01])\t(.+)$")
+    if flag then
+      wanted[name] = (flag == "1")
+      any = true
+    end
+  end
+  return any and wanted or nil
+end
+
+local function apply_items(items, wanted)
+  if not items then return end
+  for _, item in ipairs(items) do
+    local name = obs.obs_source_get_name(obs.obs_sceneitem_get_source(item))
+    local visible = wanted[name]
+    if visible ~= nil and obs.obs_sceneitem_visible(item) ~= visible then
+      obs.obs_sceneitem_set_visible(item, visible)
+    end
+    if obs.obs_sceneitem_is_group(item) then
+      local sub = obs.obs_sceneitem_group_enum_items(item)
+      apply_items(sub, wanted)
+      obs.sceneitem_list_release(sub)
+    end
+  end
+end
+
+local function apply_state(content)
+  local wanted = parse_state(content)
+  if not wanted then return end
+  local scenes = obs.obs_frontend_get_scenes()
+  if not scenes then return end
+  for _, src in ipairs(scenes) do
+    local items = obs.obs_scene_enum_items(obs.obs_scene_from_source(src))
+    apply_items(items, wanted)
+    obs.sceneitem_list_release(items)
+  end
+  obs.source_list_release(scenes)
+end
+
+local function write_sources()
+  local sources = obs.obs_enum_sources()
+  if not sources then return end
+  local names = {}
+  for _, src in ipairs(sources) do
+    names[#names + 1] = obs.obs_source_get_name(src)
+  end
+  obs.source_list_release(sources)
+  local f = io.open(SOURCES_FILE, "wb")
+  if not f then return end
+  f:write(table.concat(names, "\n"), "\n")
+  f:close()
+end
+
+local function game_tick()
+  local content = read_file(STATE_FILE)
+  if content ~= last_state then
+    last_state = content
+    apply_state(content)
+  end
+  if ticks % SOURCES_EVERY == 0 then write_sources() end
+  ticks = ticks + 1
+end
+
+-- scène ajoutée, collection changée, OBS fini de charger : on réapplique l'état connu
+-- (sans ça, une source ajoutée à une scène après coup garderait sa visibilité d'origine)
+local function on_frontend_event(event)
+  if event == obs.OBS_FRONTEND_EVENT_FINISHED_LOADING
+      or event == obs.OBS_FRONTEND_EVENT_SCENE_LIST_CHANGED
+      or event == obs.OBS_FRONTEND_EVENT_SCENE_COLLECTION_CHANGED then
+    apply_state(last_state)
+    write_sources()
+  end
+end
+
 --[[ ==================== panneau du script ==================== ]]
 
 local function on_home(props, prop)
@@ -157,6 +258,7 @@ end
 function script_description()
   return [[<b>Twitch Kit</b><br/><br/>
 Démarre les outils du stream à l'ouverture d'OBS et les arrête à la fermeture.
+Affiche aussi tes sources choisies seulement pendant tes jeux.
 Rien d'autre à faire ici : tout se règle sur la page d'accueil.]]
 end
 
@@ -165,9 +267,12 @@ function script_load(settings)
   if autostart then
     start_server()
   end
+  obs.timer_add(game_tick, 1000)
+  obs.obs_frontend_add_event_callback(on_frontend_event)
 end
 
 function script_unload()
   -- appelé quand OBS se ferme, et à chaque rechargement du script
+  obs.timer_remove(game_tick)
   stop_server()
 end
