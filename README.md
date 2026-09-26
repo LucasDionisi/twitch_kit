@@ -52,6 +52,9 @@ Ton navigateur s'ouvre sur la **page d'accueil** de Twitch Kit.
 ⭐ **Ajoute cette page à tes favoris.** C'est là que tout se règle.
 Elle ne s'affiche que quand OBS est ouvert : c'est normal.
 
+Elle montre une **vignette** par compte et par outil, avec son état (point vert = prêt).
+Clique sur une vignette pour ouvrir sa page, et sur **← Accueil** pour revenir.
+
 ---
 
 ## Étape 3 — Connecter ta chaîne Twitch
@@ -68,7 +71,7 @@ Garde la page d'accueil ouverte dans un onglet : tu vas copier des choses entre 
 2. Clique sur **Register Your Application** (Enregistrer votre application).
 3. Remplis le formulaire :
    - **Name** (Nom) : invente un nom, par exemple `twitchkit-` suivi de ton pseudo.
-   - **OAuth Redirect URLs** : retourne sur la page d'accueil, dans le cadre
+   - **OAuth Redirect URLs** : retourne sur la page d'accueil et clique sur la vignette
      **Chaîne Twitch**. Clique sur **Clés de l'application Twitch**, puis sur le bouton
      **Copier**. Reviens sur Twitch et colle (Ctrl+V).
    - **Category** (Catégorie) : choisis **Broadcaster Suite**.
@@ -91,7 +94,7 @@ Garde la page d'accueil ouverte dans un onglet : tu vas copier des choses entre 
 1. Clique sur le bouton violet **Autoriser ma chaîne**.
 2. Twitch te demande si tu es d'accord : clique sur **Autoriser**.
 
-Tu reviens sur la page d'accueil, et le cadre **Chaîne Twitch** affiche
+Tu reviens sur la page d'accueil, et la vignette **Chaîne Twitch** affiche
 **Connecté : ton pseudo** avec un point vert. 🎉
 
 **C'est terminé pour l'essentiel.** Les étapes 4 et 5 sont facultatives.
@@ -106,9 +109,9 @@ Le bot est un second compte Twitch qui écrira dans ton chat.
    **S'inscrire**). Reconnecte-toi ensuite avec ton compte habituel.
 2. Dans le chat de ta chaîne, écris `/mod` suivi du pseudo du bot, par exemple
    `/mod monbot`, puis Entrée. Ton bot devient modérateur.
-3. Sur la page d'accueil, dans le cadre **Compte du bot**, clique sur **Pseudo du bot**,
+3. Sur la page d'accueil, clique sur la vignette **Compte du bot**, puis sur **Pseudo du bot**,
    écris son pseudo et clique sur **Enregistrer**.
-4. Dans le même cadre, clique sur **Copier**.
+4. Sur la même page, clique sur **Copier**.
 5. Ouvre une **fenêtre de navigation privée** : appuie en même temps sur
    **Ctrl + Maj + N**.
 6. Dans cette fenêtre, va sur <https://www.twitch.tv>, et connecte-toi avec **le compte du
@@ -117,7 +120,7 @@ Le bot est un second compte Twitch qui écrira dans ton chat.
    sur Entrée. Clique sur **Autoriser**.
 8. Ferme la fenêtre privée et retourne sur la page d'accueil.
 
-Le cadre **Compte du bot** affiche **Connecté : pseudo du bot**.
+La vignette **Compte du bot** affiche **Connecté : pseudo du bot**.
 
 *Pourquoi la fenêtre privée ? Sinon Twitch utilise le compte déjà connecté, c'est-à-dire
 le tien. Si ça arrive, pas de panique : rien n'est enregistré, recommence simplement à
@@ -135,7 +138,7 @@ Pour afficher la musique que tu écoutes. Un compte Spotify gratuit suffit.
 3. Remplis :
    - **App name** : ce que tu veux, par exemple `Twitch Kit` ;
    - **App description** : ce que tu veux, par exemple `Mon stream` ;
-   - **Redirect URIs** : sur la page d'accueil, dans le cadre **Spotify**, clique sur
+   - **Redirect URIs** : sur la page d'accueil, clique sur la vignette **Spotify**, puis sur
      **Clés de l'application Spotify**, puis sur **Copier**. Reviens sur Spotify, colle,
      et clique sur **Add** ;
    - coche **Web API** ;
@@ -152,7 +155,7 @@ Pour afficher la musique que tu écoutes. Un compte Spotify gratuit suffit.
 ## Ajouter un outil dans OBS
 
 La partie **Fonctionnalités** de la page d'accueil liste les outils disponibles.
-Pour chaque outil, elle te donne une adresse à copier et une taille.
+Clique sur la vignette d'un outil : sa page te donne une adresse à copier et une taille.
 
 Pour en ajouter un dans OBS :
 
@@ -165,6 +168,51 @@ Pour en ajouter un dans OBS :
    - **Fichier local**
    - **Éteindre la source quand elle n'est pas visible**
 5. Clique sur **OK**.
+
+---
+
+## Overlays sondage et prédiction
+
+Deux outils séparés, **Overlay sondage** et **Overlay prédiction**, à ajouter chacun dans
+OBS comme expliqué juste au-dessus (taille **660 × 720**). Ils sont invisibles au repos :
+ils apparaissent quand tu lances un sondage ou une prédiction, suivent les votes et les
+mises en direct, affichent le résultat, puis disparaissent tout seuls.
+
+Place la source où tu veux sur ta scène : l'overlay s'affiche dans son coin en haut à
+gauche.
+
+Sur la page de chaque overlay, l'**aperçu** montre de faux sondages ou de fausses
+prédictions en boucle, avec tes réglages :
+
+- **Thème** : **Néon circuit** ou **Néon CRT**. Chaque thème garde ses couleurs.
+- **Couleurs** : clique sur une pastille pour la changer. **Couleurs d'origine** remet
+  celles du thème.
+- **Taille** et **Durée du résultat** (combien de secondes le résultat reste affiché).
+- **Éléments affichés** : chrono, nombre de votes ou de points, pied.
+- **Textes** : les petits messages du bas. Vide = texte d'origine.
+
+Clique sur **Enregistrer** : l'overlay change tout de suite dans OBS, sans rien recharger.
+
+---
+
+## Sondages et prédictions dans le chat
+
+Quand tu lances un sondage ou une prédiction sur Twitch, le bot l'annonce dans ton chat,
+puis donne le résultat à la fin. Il faut que ta chaîne **et** le bot soient connectés
+(étapes 3 et 4). Rien à ajouter dans OBS.
+
+Sur la page d'accueil, clique sur la vignette **Sondages et prédictions dans le chat**.
+Dans la partie **Réglages** de sa page :
+
+- **Messages activés** coupe ou rallume tout d'un coup.
+- **Style** : **Message** pour un message normal, ou **Annonce** pour un message mis en
+  avant, en couleur. Pour les annonces, le bot doit être modérateur (étape 4, point 2).
+- Chaque moment (lancement, mises fermées, résultat, annulation) a son interrupteur et son
+  texte. Les mots entre accolades, comme **{titre}**, sont remplacés par la vraie valeur :
+  clique dessus pour les ajouter au texte. **Texte par défaut** remet le texte d'origine.
+- **Tester** envoie un exemple dans ton chat, pour voir le rendu.
+
+N'oublie pas de cliquer sur **Enregistrer** en bas.
 
 ---
 
@@ -181,7 +229,7 @@ Quand une nouvelle version sort :
 5. Rouvre OBS.
 
 Tes réglages sont gardés : tu n'as rien à refaire.
-Si un cadre de la page d'accueil affiche **Autorisation à refaire**, clique simplement
+Si une vignette de la page d'accueil affiche **Autorisation à refaire**, ouvre-la et clique
 sur son bouton **Autoriser**.
 
 ---
@@ -201,9 +249,19 @@ L'adresse collée à l'étape 3-A n'est pas la bonne. Sur <https://dev.twitch.tv
 clique sur **Manage**, efface l'adresse, recopie-la avec le bouton **Copier** de la page
 d'accueil, et clique sur **Save**.
 
-**Un cadre affiche « Autorisation à refaire ».**
-Clique sur le bouton **Autoriser** de ce cadre. Ça arrive après certaines mises à jour, ou
-si tu as changé ton mot de passe Twitch.
+**Une vignette affiche « Autorisation à refaire ».**
+Ouvre-la et clique sur son bouton **Autoriser**. Ça arrive après certaines mises à jour, ou
+si tu as changé ton mot de passe Twitch. Pour le bot, refais l'étape 4 à partir du point 5,
+dans une **fenêtre de navigation privée**.
+
+**Le bot n'annonce pas les sondages ou les prédictions.**
+Ouvre la vignette **Sondages et prédictions dans le chat** sur la page d'accueil : elle dit
+ce qui manque. Vérifie aussi que **Messages activés** est allumé dans ses **Réglages**, puis
+clique sur **Tester**.
+
+**Le bot écrit en message normal alors que tu as choisi « Annonce ».**
+Le bot n'est pas modérateur de ta chaîne : dans ton chat, écris `/mod` suivi du pseudo du
+bot, puis Entrée.
 
 **Spotify affiche « INVALID_CLIENT ».**
 Une des deux clés Spotify est fausse. Recopie-les (étape 5, points 5 et 6), puis

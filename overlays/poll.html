@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Sondage</title>
+<!-- Overlay sondage, source Navigateur d'OBS : invisible au repos, apparaît au lancement
+     d'un sondage, suit les votes en direct, montre le résultat puis se retire.
+     Aperçu sans live : poll.html?demo=1 (faux sondages en boucle).
+     Rendu dans votes.js, styles et thèmes dans votes.css. -->
+<link rel="stylesheet" href="votes.css">
+</head>
+<body class="theme-circuit kind-poll">
+  <div id="stage">
+    <div class="ov" id="ov" hidden>
+      <div class="panel">
+        <div class="head">
+          <span class="kind" id="kind"></span>
+          <span class="timer" id="timer"><span class="node"></span><span id="time"></span></span>
+        </div>
+        <div class="q" id="title"></div>
+        <div id="rows"></div>
+        <div id="duel" hidden></div>
+        <div class="foot"><span id="foot-left"></span><span id="foot-right"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="live.js"></script>
+  <script src="votes.js"></script>
+  <script>VoteOverlay.start('poll');</script>
+</body>
+</html>
