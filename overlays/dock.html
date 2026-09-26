@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Twitch Kit</title>
+<!-- Dock OBS (Docks → Docks personnalisés du navigateur) : l'état des comptes et des
+     fonctionnalités, d'un coup d'œil. Pas une source de scène. -->
+<link rel="stylesheet" href="dock.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/" target="_blank" title="Ouvrir la page d'accueil">
+      <span class="brand-dot"></span>Twitch Kit
+    </a>
+    <span class="summary" id="summary">…</span>
+  </header>
+
+  <div id="offline" class="banner" hidden>
+    <b>Serveur arrêté.</b> Dans OBS : Outils → Scripts, sélectionne
+    obs_twitch_kit.lua puis « Démarrer maintenant ».
+  </div>
+
+  <!-- une section par groupe (comptes, overlays, bot…), construite par dock.js -->
+  <main id="groups"></main>
+
+  <footer class="foot">
+    <a href="/" target="_blank">Page d'accueil ↗</a>
+    <span id="version"></span>
+  </footer>
+
+  <script src="features.js"></script>
+  <script src="etat.js"></script>
+  <script src="dock.js"></script>
+</body>
+</html>
