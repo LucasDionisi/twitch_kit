@@ -233,6 +233,32 @@ Pour l'ajouter, une seule fois :
 
 ---
 
+## Transition de scène
+
+Une transition néon aux couleurs du stream : un panneau sombre traverse l'écran, OBS
+change de scène pendant qu'il le couvre, puis il se retire. Ce n'est pas une source :
+tu fabriques une petite vidéo une fois, puis OBS la joue à chaque changement de scène.
+
+1. Sur la page d'accueil, clique sur la vignette **Transition de scène**. L'aperçu montre
+   la transition entre deux fausses scènes.
+2. Règle la **Vitesse**, la **Direction**, la **Densité** et les **Couleurs**. **Autre
+   tirage** change la place des lignes et des points.
+3. Clique sur **Exporter la vidéo pour OBS** et garde l'onglet au premier plan jusqu'à
+   **Terminé**. La vidéo arrive dans tes téléchargements : range-la dans un dossier où elle
+   ne bougera plus.
+4. Dans OBS, en bas à droite, dans **Transitions de scène**, clique sur **+** puis
+   **Stinger**, et donne-lui un nom.
+5. **Fichier vidéo** : choisis la vidéo exportée. **Type de point de transition** :
+   **Temps (millisecondes)**, et mets dans **Point de transition** le nombre affiché sur
+   la page de la vignette.
+6. Laisse **Track Matte** décoché et **Précharger la vidéo en mémoire** coché, puis
+   clique sur **OK**.
+
+Rien n'est retenu sur la page : si tu changes un réglage, exporte à nouveau et remplace
+la vidéo dans OBS (le point de transition peut changer avec la vitesse).
+
+---
+
 ## Mettre à jour
 
 Quand une nouvelle version sort :

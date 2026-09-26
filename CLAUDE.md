@@ -78,7 +78,16 @@ par deux overlays OBS) :
   avec l'aperçu : l'overlay en `?demo=1` dans un iframe, qui reçoit les réglages non
   enregistrés par `postMessage` (`{ twitchKitConfig }`, origine vérifiée) et n'ouvre alors
   pas de flux.
-- `overlays/features.js` — catalogue des fonctionnalités affichées sur l'accueil.
+- `overlays/transition.js` — transition de scène « néon circuit » (Stinger OBS, portée de
+  `transition.html` de `twitch_tools`) : `create(opts)` → moteur avec `renderFrame(ctx, t)`
+  pur (t de 0 à 1, aléatoire à graine) et `cover` (point de transition) ;
+  `exportVideo()` → WebM avec alpha (MediaRecorder image par image, puis remux EBML).
+  Pas une source OBS : OBS ne lit que la vidéo exportée.
+- `overlays/home_transition.js` — page de la tuile transition (`reglages: 'transition'`) :
+  aperçu sur deux fausses scènes (rAF seulement quand la vue est affichée), réglages non
+  enregistrés (vitesse, direction, couleurs, densité, tirage), export, marche à suivre OBS.
+- `overlays/features.js` — catalogue des fonctionnalités affichées sur l'accueil
+  (`dock: false` = pas de ligne dans le dock, pour le dock lui-même et les outils sans état).
 - `obs_twitch_kit.lua` + `start_server_hidden.vbs` — lancement caché depuis OBS. Le `.vbs`
   prend `runtime\node.exe` s'il existe (zip de release), sinon `node` du PATH (dev).
   `start_server_debug.bat` : même chose avec fenêtre.

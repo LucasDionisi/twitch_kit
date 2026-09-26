@@ -105,7 +105,8 @@ function openKeysOnce(name, open) {
 // constructeurs des formulaires de réglages, par valeur de « reglages » dans features.js
 const SETTINGS_BUILDERS = {
   messages: (root, f) => window.buildMessageSettings(root, f.id),
-  apparence: (root, f) => window.buildOverlaySettings(root, f)
+  apparence: (root, f) => window.buildOverlaySettings(root, f),
+  transition: (root, f) => window.buildTransitionSettings(root, f)
 };
 
 function el(tag, className, text) {
