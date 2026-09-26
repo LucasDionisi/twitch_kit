@@ -85,6 +85,10 @@ Claude ne doit **jamais** exécuter `git add`, `git commit`, `git push`, `git ta
 `git reset`/`checkout`/`clean` destructifs) dans ce repo. L'utilisateur gère git et les
 releases lui-même.
 
+Modèle de branches (détaillé dans `RELEASE.md`) : `feature/<nom>` part de `develop` et y est
+fusionnée, `develop` est fusionnée dans `main` pour publier, et les tags `v*` se posent sur
+`main`. Pas de PR pour l'instant.
+
 ## Perf et fiabilité
 
 Le serveur tourne pendant tout le stream, en arrière-plan, sans fenêtre : une exception
